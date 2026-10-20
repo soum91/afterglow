@@ -1,0 +1,110 @@
+name: Build Apple Home bridge firmware
+
+on:
+  push:
+    branches: [main]
+    paths: ["Bridge/**", ".github/workflows/bridge.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install arduino-cli
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core and libraries
+        env:
+          ESP_URL: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+        run: |
+          arduino-cli core update-index --additional-urls "$ESP_URL"
+          arduino-cli core install esp32:esp32 --additional-urls "$ESP_URL"
+          arduino-cli lib update-index
+          arduino-cli lib install "HomeSpan" "ArduinoJson"
+          arduino-cli core list
+          arduino-cli lib list
+
+      - name: Compile for ESP32, ESP32-S3, ESP32-C3
+        run: |
+          set -o pipefail
+          mkdir -p dist
+          : > build.log
+          for chip in esp32 esp32s3 esp32c3; do
+            echo "=== $chip ===" | tee -a build.log
+            arduino-cli compile \
+              --fqbn "esp32:esp32:${chip}:PartitionScheme=min_spiffs" \
+              --export-binaries --output-dir "build/${chip}" \
+              Bridge/AfterglowBridge 2>&1 | tee -a build.log
+            cp "build/${chip}/AfterglowBridge.ino.merged.bin" "dist/AfterglowBridge-${chip}-full.bin"
+            cp "build/${chip}/AfterglowBridge.ino.bin" "dist/AfterglowBridge-${chip}-app.bin"
+          done
+          ls -lh dist
+
+      - name: Publish build log
+        if: always()
+        run: |
+          git config user.name "ci"
+          git config user.email "ci@users.noreply.github.com"
+          git checkout -B ci-logs-bridge
+          tail -n 400 build.log > ci-build.log 2>/dev/null || echo "no build.log produced" > ci-build.log
+          git add -f ci-build.log
+          git commit -m "Bridge CI log for ${GITHUB_SHA}" || true
+          git push -f origin ci-logs-bridge
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AfterglowBridge-firmware
+          path: dist/*.bin
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD: ${{ github.run_number }}
+        run: |
+          TAG="firmware-build-$BUILD"
+          mkdir -p rel
+          for f in dist/*.bin; do
+            n=$(basename "$f")
+            cp "$f" "rel/$(echo "$n" | sed -E "s/-(full|app)\.bin$/-build-$BUILD-\1.bin/")"
+          done
+          ls -lh rel
+          PREV=$(git describe --tags --abbrev=0 --match 'firmware-build-*' "$GITHUB_SHA" 2>/dev/null || true)
+          {
+            echo "## Afterglow Bridge firmware (build $BUILD)"
+            echo
+            if [ -n "$PREV" ]; then
+              echo "### Changes since $PREV"
+              LOG=$(git log "$PREV..$GITHUB_SHA" --no-merges --pretty='- %s (%h)' -- Bridge .github/workflows/bridge.yml)
+            else
+              echo "### Changes"
+              LOG=$(git log "$GITHUB_SHA" --no-merges --pretty='- %s (%h)' -- Bridge .github/workflows/bridge.yml)
+            fi
+            echo
+            if [ -n "$LOG" ]; then echo "$LOG" | head -n 60; else echo "- Rebuild, no firmware changes"; fi
+            echo
+            echo "---"
+            echo "First install: flash \`AfterglowBridge-<chip>-build-$BUILD-full.bin\` at 0x0. Update: the \`-app.bin\` at 0x10000 keeps your Wi-Fi and Apple Home pairing. See Bridge/README.md."
+          } > fw-notes.md
+          cat fw-notes.md
+          gh release create "$TAG" rel/*.bin --target "$GITHUB_SHA" --title "Bridge firmware build $BUILD" --notes-file fw-notes.md --latest=false
+          # Moving pointer the app links to.
+          git tag -f firmware-latest "$GITHUB_SHA"
+          git push -f origin firmware-latest
+          if gh release view firmware-latest >/dev/null 2>&1; then
+            for a in $(gh release view firmware-latest --json assets --jq '.assets[].name'); do gh release delete-asset firmware-latest "$a" -y; done
+            gh release edit firmware-latest --title "Bridge firmware (latest: build $BUILD)" --notes-file fw-notes.md --latest=false
+          else
+            gh release create firmware-latest --title "Bridge firmware (latest: build $BUILD)" --notes-file fw-notes.md --latest=false
+          fi
+          gh release upload firmware-latest rel/*.bin --clobber

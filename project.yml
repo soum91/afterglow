@@ -1,0 +1,83 @@
+name: Afterglow
+options:
+  bundleIdPrefix: com.soum91
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGN_IDENTITY: ""
+targets:
+  Afterglow:
+    type: application
+    platform: iOS
+    sources:
+      - path: Afterglow
+      - path: Shared
+    dependencies:
+      - target: AfterglowWidget
+    info:
+      path: Afterglow/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDisplayName: Afterglow
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        ITSAppUsesNonExemptEncryption: false
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [com.soum91.afterglow.refresh]
+        NSLocationWhenInUseUsageDescription: Afterglow uses your location to run scenes when you arrive or leave home.
+        NSLocationAlwaysAndWhenInUseUsageDescription: Afterglow runs your arrive and leave home scenes in the background, even when the app is closed. Choose Always for that to work.
+        NSLocalNetworkUsageDescription: Afterglow talks to your lights, your TV and the Apple Home bridge directly over Wi-Fi for instant control.
+        NSBonjourServices: [_afterglow._tcp]
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSPhotoLibraryAddUsageDescription: Afterglow saves the Smart Life login QR to Photos so you can pick it from Smart Life's scanner.
+        LSApplicationQueriesSchemes: [smartlife, tuyasmart]
+        CFBundleURLTypes:
+          - CFBundleURLName: com.soum91.afterglow
+            CFBundleURLSchemes: [afterglow]
+    entitlements:
+      path: Afterglow/Afterglow.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.soum91.afterglow]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.soum91.afterglow
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+  AfterglowWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: AfterglowWidget
+      - path: Shared
+    info:
+      path: AfterglowWidget/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDisplayName: Afterglow
+        NSLocalNetworkUsageDescription: Afterglow talks to your lights directly over Wi-Fi.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: AfterglowWidget/AfterglowWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.soum91.afterglow]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.soum91.afterglow.widget
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES

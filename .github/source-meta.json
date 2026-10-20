@@ -1,0 +1,13 @@
+{
+  "name": "Afterglow",
+  "sourceName": "Afterglow by soum91",
+  "sourceIdentifier": "io.github.soum91.afterglow",
+  "subtitle": "Tuya lights, local and fast",
+  "description": "Controls Tuya/Smart Life lights straight over Wi-Fi (cloud as fallback) with scenes, widgets, Control Center toggles, Siri, and an ESP32 bridge that puts them in Apple Home and turns them off when the TV goes off.",
+  "developerName": "soum91",
+  "iconURL": "https://raw.githubusercontent.com/soum91/afterglow/main/Afterglow/Assets.xcassets/AppIcon.appiconset/icon.png",
+  "tintColor": "FFAD4D",
+  "category": "utilities",
+  "website": "https://github.com/soum91/afterglow",
+  "sourceURL": "https://raw.githubusercontent.com/soum91/afterglow/source/source.json"
+}
