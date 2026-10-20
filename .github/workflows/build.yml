@@ -46,6 +46,21 @@ jobs:
             build | tee build.log | grep -E "error:|warning: unre|BUILD (SUCCEEDED|FAILED)" || true
           test -d build/Build/Products/Release-iphoneos/Afterglow.app
 
+      - name: Publish build log
+        if: always()
+        run: |
+          git config user.name "ci"
+          git config user.email "ci@users.noreply.github.com"
+          grep -E "error:|warning:" build.log | sort -u > ci-errors.log || true
+          tail -n 300 build.log >> ci-errors.log 2>/dev/null || echo "no build.log" >> ci-errors.log
+          git stash -u -q || true
+          git checkout -q -B ci-logs-ios
+          git stash pop -q || true
+          git add -f ci-errors.log
+          git commit -qm "iOS CI log for ${GITHUB_SHA}" || true
+          git push -qf origin ci-logs-ios
+          git checkout -q -f "$GITHUB_SHA"
+
       - name: Package IPA
         run: |
           mkdir -p Payload
