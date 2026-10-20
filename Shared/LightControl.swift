@@ -44,7 +44,7 @@ actor LightControl {
                 touch(light.id)
                 lastRoute[light.id] = .local
                 var updated = light.applying(cmds)
-                if let echoed, !echoed.isEmpty { updated = updated.applying(Array(light.cloudStatus(echoed))) }
+                if let echoed, !echoed.isEmpty { updated = updated.applying(status: light.cloudStatus(echoed)) }
                 save(updated)
                 return .local
             } catch {
@@ -185,7 +185,7 @@ actor LightControl {
         guard let light = LightStore.load().first(where: { $0.id == id }) else { return }
         let status = light.cloudStatus(dps)
         guard !status.isEmpty else { return }
-        save(light.applying(Array(status)))
+        save(light.applying(status: status))
         Self.onStatus?(id, status)
     }
 
@@ -200,8 +200,8 @@ actor LightControl {
 }
 
 extension Light {
-    func applying(_ dict: [(key: String, value: JSONValue)]) -> Light {
-        applying(dict.map { ($0.key, $0.value) })
+    func applying(status: [String: JSONValue]) -> Light {
+        applying(status.map { ($0.key, $0.value) })
     }
 }
 
