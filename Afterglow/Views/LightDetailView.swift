@@ -280,7 +280,7 @@ struct ColourWheel: View {
                         var deg = atan2(dy, dx) * 180 / .pi
                         if deg < 0 { deg += 360 }
                         let sat = max(0, min(1, sqrt(dx * dx + dy * dy) / (r - 17)))
-                        let next = (deg, sat)
+                        let next: (Double, Double) = (Double(deg), Double(sat))
                         if let d = drag, abs(d.0 - next.0) < 2, abs(d.1 - next.1) < 0.02 { return }
                         drag = next
                         onChange(next.0, next.1)
