@@ -1,0 +1,9 @@
+=== esp32 ===
+Sketch uses 1617899 bytes (82%) of program storage space. Maximum is 1966080 bytes.
+Global variables use 63752 bytes (19%) of dynamic memory, leaving 263928 bytes for local variables. Maximum is 327680 bytes.
+=== esp32s3 ===
+Sketch uses 1590453 bytes (80%) of program storage space. Maximum is 1966080 bytes.
+Global variables use 61416 bytes (18%) of dynamic memory, leaving 266264 bytes for local variables. Maximum is 327680 bytes.
+=== esp32c3 ===
+Sketch uses 1743283 bytes (88%) of program storage space. Maximum is 1966080 bytes.
+Global variables use 52256 bytes (15%) of dynamic memory, leaving 275424 bytes for local variables. Maximum is 327680 bytes.
