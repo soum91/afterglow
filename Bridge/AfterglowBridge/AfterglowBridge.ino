@@ -4,7 +4,7 @@
   over the Tuya LAN protocol, no cloud. It also watches a Sony Bravia TV and runs the TV automations you set
   in the Afterglow app (lights off when the TV turns off, with a delay it learns from you), so they work
   without a HomePod / Apple TV and without your phone. Since 1.1 it also switches a Vizio sound bar with the TV
-  (set from the Undertow app): SmartCast over Wi-Fi, or a Tuya IR blaster, plus a Sound Bar switch in Home.
+  (set from the Subwave app): SmartCast over Wi-Fi, or a Tuya IR blaster, plus a Sound Bar switch in Home.
 
   Libraries: HomeSpan 2.x, ArduinoJson 7.x. Board core: arduino-esp32 3.x. Partition: Minimal SPIFFS.
 
@@ -12,7 +12,7 @@
     1. Join Wi-Fi "HomeSpan-Setup" (password: homespan), enter your 2.4 GHz Wi-Fi and a setup code.
     2. In Afterglow: Settings > Apple Home bridge. It finds the bridge and sends your lights.
     3. Home app > + > Add Accessory > More options > "Afterglow Bridge".
-  Serial (115200): @i shows status, @R forgets the paired phone so another can pair, @B does the same for Undertow.
+  Serial (115200): @i shows status, @R forgets the paired phone so another can pair, @B does the same for Subwave.
 */
 
 #include "HomeSpan.h"
@@ -87,7 +87,7 @@ static long utcOffset = 0;
 static String token;
 static bool followTV = true;
 
-// Vizio sound bar, set from the Undertow app (separate token from Afterglow's).
+// Vizio sound bar, set from the Subwave app (separate token from Afterglow's).
 struct BarCfg {
   bool configured = false;
   String name = "Sound Bar", ip, auth, route = "auto";
@@ -1014,7 +1014,7 @@ static void handleRun() {
 }
 
 static bool barAuthorized() {
-  return barToken.length() && server.header("X-Undertow-Token") == barToken;
+  return barToken.length() && server.header("X-Subwave-Token") == barToken;
 }
 
 static void handleBarClaim() {
@@ -1023,7 +1023,7 @@ static void handleBarClaim() {
   for (int i = 0; i < 16; i++) snprintf(b + i * 2, 3, "%02x", (unsigned)(esp_random() & 0xff));
   barToken = String(b);
   prefs.putString("bartoken", barToken);
-  barEvent("paired with Undertow");
+  barEvent("paired with Subwave");
   server.send(200, "application/json", "{\"token\":\"" + barToken + "\"}");
 }
 
@@ -1061,7 +1061,7 @@ static void handleBarPower() {
 static void startNetworkServices() {
   if (WiFi.status() != WL_CONNECTED) return;
   if (!serverUp) {
-    const char *headers[] = {"X-Afterglow-Token", "X-Undertow-Token"};
+    const char *headers[] = {"X-Afterglow-Token", "X-Subwave-Token"};
     server.collectHeaders(headers, 2);
     server.on("/api/info", HTTP_GET, handleInfo);
     server.on("/api/claim", HTTP_POST, handleClaim);
@@ -1125,7 +1125,7 @@ static void showInfo(const char *) {
   for (auto &L : lights)
     Serial.printf("  %-24s %-15s v%.1f %s %s\n", L.name.c_str(), L.ip.c_str(), L.ver, L.known ? (L.on ? "on" : "off") : "?", L.ok ? "" : "(not answering)");
   for (auto &e : events) Serial.println("  " + e);
-  Serial.printf("Sound bar: %s, %s, Wi-Fi %s, IR %s, follows TV: %s, Undertow paired: %s\n", bar.configured ? bar.name.c_str() : "not set",
+  Serial.printf("Sound bar: %s, %s, Wi-Fi %s, IR %s, follows TV: %s, Subwave paired: %s\n", bar.configured ? bar.name.c_str() : "not set",
                 barLabel.c_str(), barHasWifi() ? bar.ip.c_str() : "-", barHasIR() ? bar.blIp.c_str() : "-",
                 barFollow ? "yes" : "no", barToken.length() ? "yes" : "no");
 }
@@ -1139,7 +1139,7 @@ static void resetPairing(const char *) {
 static void resetBarPairing(const char *) {
   barToken = "";
   prefs.remove("bartoken");
-  Serial.println("Undertow pairing cleared. Open Undertow > Follow the TV to pair again.");
+  Serial.println("Subwave pairing cleared. Open Subwave > Follow the TV to pair again.");
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1167,7 +1167,7 @@ void setup() {
   homeSpan.begin(Category::Bridges, "Afterglow Bridge", "afterglow");
   new SpanUserCommand('i', "- show lights, TV and learned delay", showInfo);
   new SpanUserCommand('R', "- forget the paired phone", resetPairing);
-  new SpanUserCommand('B', "- forget the phone paired from Undertow (sound bar)", resetBarPairing);
+  new SpanUserCommand('B', "- forget the phone paired from Subwave (sound bar)", resetBarPairing);
 
   new SpanAccessory(1);
     new Service::AccessoryInformation();
