@@ -44,10 +44,22 @@ Set in Afterglow › Settings › TV & automations, run on the bridge:
 
 TV state comes from the Bravia REST API every 4 s; two "standby" answers (or three timeouts) in a row count as off.
 
+## Sound bar (Undertow)
+
+Since firmware 1.1 the bridge also switches a Vizio sound bar with the TV, set up from the [Undertow](https://github.com/soum91/undertow) app (Follow the TV). Undertow pairs on its own token, so it doesn't touch Afterglow's pairing.
+
+- **TV off**: sound bar off after a delay you set (default 5 s), optionally only between two times. Turning the TV back on before then cancels it.
+- **TV on**: optional, sound bar on.
+- Over Wi-Fi it uses SmartCast's discrete power off/on (`/key_command/`, codeset 11), so it's safe even if the bar already followed the TV over HDMI-CEC. If the bar doesn't answer on Wi-Fi it's in deep standby, which counts as off.
+- Over IR (through the Tuya blaster) the remote only has a power toggle, so a TV rule only presses it when Wi-Fi says the bar is in the wrong state, or, for bars not on Wi-Fi, when you turn on "Use IR power toggle" (only if the bar does not follow the TV by itself).
+- In Home you get a **Sound Bar** switch and a **Sound Bar Follows TV** switch. Both appear after Undertow sends its first config (the bridge restarts once).
+- If Afterglow has no TV set, the bridge uses the TV address from Undertow.
+
 ## Serial console (115200)
 
-- `@i` lights, TV, learned delay, recent events
+- `@i` lights, TV, learned delay, sound bar, recent events
 - `@R` forget the paired phone (to pair a different one)
+- `@B` forget the phone paired from Undertow
 - `?` HomeSpan commands (Wi-Fi reset, unpair, factory reset)
 
 ## Notes

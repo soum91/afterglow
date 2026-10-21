@@ -3,7 +3,8 @@
   ESP32 firmware that puts Tuya / Smart Life lights in Apple Home (HomeKit, via HomeSpan) and talks to them
   over the Tuya LAN protocol, no cloud. It also watches a Sony Bravia TV and runs the TV automations you set
   in the Afterglow app (lights off when the TV turns off, with a delay it learns from you), so they work
-  without a HomePod / Apple TV and without your phone.
+  without a HomePod / Apple TV and without your phone. Since 1.1 it also switches a Vizio sound bar with the TV
+  (set from the Undertow app): SmartCast over Wi-Fi, or a Tuya IR blaster, plus a Sound Bar switch in Home.
 
   Libraries: HomeSpan 2.x, ArduinoJson 7.x. Board core: arduino-esp32 3.x. Partition: Minimal SPIFFS.
 
@@ -11,7 +12,7 @@
     1. Join Wi-Fi "HomeSpan-Setup" (password: homespan), enter your 2.4 GHz Wi-Fi and a setup code.
     2. In Afterglow: Settings > Apple Home bridge. It finds the bridge and sends your lights.
     3. Home app > + > Add Accessory > More options > "Afterglow Bridge".
-  Serial (115200): @i shows status, @R forgets the paired phone so another can pair.
+  Serial (115200): @i shows status, @R forgets the paired phone so another can pair, @B does the same for Undertow.
 */
 
 #include "HomeSpan.h"
@@ -19,6 +20,7 @@
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include <time.h>
@@ -26,13 +28,14 @@
 #include <algorithm>
 #include "TuyaLan.h"
 
-#define FW_VERSION "1.0.0"
+#define FW_VERSION "1.1.0"
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
 #define TV_POLL_MS 4000UL
 #define ECHO_IGNORE_MS 4000UL    // ignore polled state this long after we sent something
 #define MAX_SAMPLES 9
+#define BAR_POLL_MS 15000UL
 
 // ---------------------------------------------------------------------------------------------
 // Config and shared state
@@ -83,6 +86,31 @@ static String tvHost, tvPsk;
 static long utcOffset = 0;
 static String token;
 static bool followTV = true;
+
+// Vizio sound bar, set from the Undertow app (separate token from Afterglow's).
+struct BarCfg {
+  bool configured = false;
+  String name = "Sound Bar", ip, auth, route = "auto";
+  int port = 7345;
+  String blId, blKey, blIp, blPower;   // blPower: data points that make the blaster send the remote's power toggle
+  float blVer = 3.3;
+  bool offEnabled = false, offWindow = false, irToggle = false;
+  int offDelay = 5, offFrom = 0, offTo = 0;
+  bool onEnabled = false, onWindow = false;
+  int onFrom = 0, onTo = 0;
+  String tvIp, tvPsk;                  // used when Afterglow hasn't set a TV
+};
+static BarCfg bar;
+static String barToken;
+static bool barFollow = true;
+static bool barInHome = false;         // accessories created at boot
+static String barHomeName;
+static uint32_t barOffDueMs = 0;
+static uint32_t lastBarPoll = 0;
+static volatile int barKnown = -1;     // 1 on, 0 off, -1 unknown
+static volatile int barWant = -1;      // asked for from Home: 1 on, 0 off
+static String barLabel = "not set";
+static std::vector<String> barEvents;
 
 static SemaphoreHandle_t stateLock;
 static std::vector<Cmd> queue;
@@ -481,6 +509,214 @@ static void runActions(const Rule &r, const char *why) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Sound bar
+
+static String tvAddr() { return tvHost.length() ? tvHost : bar.tvIp; }
+static String tvKey() { return tvHost.length() ? tvPsk : bar.tvPsk; }
+
+static void barEvent(const String &s) {
+  logEvent("Bar: " + s);
+  xSemaphoreTake(stateLock, portMAX_DELAY);
+  barEvents.push_back(clockText() + " " + s);
+  if (barEvents.size() > 12) barEvents.erase(barEvents.begin());
+  xSemaphoreGive(stateLock);
+}
+
+static bool barHasWifi() { return bar.ip.length() && bar.route != "ir"; }
+static bool barHasIR() {
+  return bar.blId.length() && bar.blKey.length() == 16 && bar.blIp.length() && bar.blPower.length() && bar.route != "wifi";
+}
+
+// SmartCast is HTTPS with a self-signed certificate, on your own network.
+static int barHttp(const char *method, const String &path, const String &body, String &out) {
+  WiFiClientSecure c;
+  c.setInsecure();
+  HTTPClient http;
+  http.setConnectTimeout(1500);
+  http.setTimeout(3000);
+  if (!http.begin(c, "https://" + bar.ip + ":" + String(bar.port) + path)) return -1;
+  if (bar.auth.length()) http.addHeader("AUTH", bar.auth);
+  int code;
+  if (body.length()) {
+    http.addHeader("Content-Type", "application/json");
+    code = http.sendRequest(method, body);
+  } else {
+    code = http.sendRequest(method);
+  }
+  out = code > 0 ? http.getString() : "";
+  http.end();
+  return code;
+}
+
+static int barReadPower() {   // 1 on, 0 standby, -1 not answering (deep standby drops off Wi-Fi)
+  if (!bar.ip.length()) return -1;
+  String out;
+  if (barHttp("GET", "/state/device/power_mode", "", out) <= 0) return -1;
+  JsonDocument d;
+  if (deserializeJson(d, out)) return -1;
+  JsonVariant items = d["ITEMS"];
+  if (items.isNull()) items = d["items"];
+  JsonVariant v = items[0]["VALUE"];
+  if (v.isNull()) v = items[0]["value"];
+  if (v.isNull()) return -1;
+  return v.as<int>() ? 1 : 0;
+}
+
+static bool barKey(int codeset, int code) {
+  String out;
+  String body = "{\"KEYLIST\":[{\"CODESET\":" + String(codeset) + ",\"CODE\":" + String(code) + ",\"ACTION\":\"KEYPRESS\"}]}";
+  int rc = barHttp("PUT", "/key_command/", body, out);
+  out.toUpperCase();
+  return rc > 0 && out.indexOf("SUCCESS") >= 0;
+}
+
+static bool barIRToggle() {
+  tuya::Conn conn;
+  bool ok = false;
+  for (int attempt = 0; attempt < 2 && !ok; attempt++) {
+    if (conn.open(bar.blIp, bar.blId, bar.blKey, bar.blVer)) {
+      ok = conn.set(bar.blPower);
+      conn.close();
+    }
+    if (!ok) delay(200);
+  }
+  if (!ok) barEvent("IR blaster: " + conn.lastError);
+  return ok;
+}
+
+// Switches the bar and says how, for the log and the app's test buttons.
+static String barPower(bool on, bool fromRule) {
+  int known = -1;
+  if (barHasWifi()) {
+    if (barKey(11, on ? 1 : 0)) {
+      barKnown = on ? 1 : 0;
+      barLabel = on ? "on" : "standby";
+      return "Wi-Fi";
+    }
+    known = barReadPower();
+    if (!on && known == -1) { barKnown = 0; barLabel = "off (not answering)"; return "nothing, already asleep"; }
+    if (known == (on ? 1 : 0)) { barKnown = known; return String("nothing, already ") + (on ? "on" : "off"); }
+  }
+  if (barHasIR()) {
+    // The remote's power button is a toggle, so only press it when it will go the right way.
+    bool press;
+    if (known != -1) press = known != (on ? 1 : 0);
+    else if (barHasWifi()) press = on;                // on Wi-Fi but not answering: asleep, so only waking needs it
+    else press = !fromRule || bar.irToggle;           // no way to read it: rules only if you said the bar ignores the TV
+    if (!press) return "nothing (IR toggle is off for TV rules)";
+    if (barIRToggle()) {
+      barKnown = on ? 1 : 0;
+      barLabel = on ? "on (IR)" : "off (IR)";
+      return "IR";
+    }
+    return "failed over IR";
+  }
+  return barHasWifi() ? "failed over Wi-Fi" : "nothing, not set up";
+}
+
+static void pollBar() {
+  if (!bar.configured || !barHasWifi()) return;
+  if (millis() - lastBarPoll < BAR_POLL_MS) return;
+  lastBarPoll = millis();
+  int r = barReadPower();
+  barKnown = r == 1 ? 1 : 0;
+  barLabel = r == 1 ? "on" : r == 0 ? "standby" : "off (not answering)";
+}
+
+static void barTvOff() {
+  if (!bar.configured || !barFollow || !bar.offEnabled || !inWindow(bar.offWindow, bar.offFrom, bar.offTo)) return;
+  barOffDueMs = millis() + (uint32_t)max(0, bar.offDelay) * 1000UL;
+  if (!barOffDueMs) barOffDueMs = 1;
+  barEvent("TV off, bar off in " + String(bar.offDelay) + " s");
+}
+
+static void barTvOn() {
+  if (barOffDueMs) { barOffDueMs = 0; barEvent("TV back on, kept the bar on"); }
+  if (!bar.configured || !barFollow || !bar.onEnabled || !inWindow(bar.onWindow, bar.onFrom, bar.onTo)) return;
+  barEvent("TV on, bar on: " + barPower(true, true));
+}
+
+static bool parseBarConfig(const String &json) {
+  JsonDocument d;
+  if (deserializeJson(d, json)) return false;
+  BarCfg b;
+  b.name = d["bar"]["name"] | "Sound Bar";
+  if (!b.name.length()) b.name = "Sound Bar";
+  b.ip = d["bar"]["ip"] | "";
+  b.port = d["bar"]["port"] | 7345;
+  b.auth = d["bar"]["auth"] | "";
+  b.route = d["bar"]["route"] | "auto";
+  if (d["blaster"].is<JsonObject>()) {
+    b.blId = d["blaster"]["id"] | "";
+    b.blKey = d["blaster"]["key"] | "";
+    b.blIp = d["blaster"]["ip"] | "";
+    b.blVer = d["blaster"]["ver"] | 3.3f;
+    serializeJson(d["blaster"]["power"], b.blPower);
+    if (b.blPower == "null") b.blPower = "";
+  }
+  b.offEnabled = d["off"]["enabled"] | false;
+  b.offDelay = d["off"]["delay"] | 5;
+  b.offWindow = d["off"]["window"] | false;
+  b.offFrom = d["off"]["from"] | 0;
+  b.offTo = d["off"]["to"] | 0;
+  b.irToggle = d["off"]["irToggle"] | false;
+  b.onEnabled = d["on"]["enabled"] | false;
+  b.onWindow = d["on"]["window"] | false;
+  b.onFrom = d["on"]["from"] | 0;
+  b.onTo = d["on"]["to"] | 0;
+  b.tvIp = d["tv"]["ip"] | "";
+  b.tvPsk = d["tv"]["psk"] | "";
+  b.configured = b.ip.length() > 0 || b.blId.length() > 0;
+  if (!d["utcOffset"].isNull() && lights.empty()) utcOffset = d["utcOffset"].as<long>();
+  bar = b;
+  if (!bar.configured) barLabel = "not set";
+  return true;
+}
+
+static String loadStoredBarConfig() {
+  size_t n = prefs.getBytesLength("barcfg");
+  if (!n) return "";
+  std::vector<char> b(n + 1, 0);
+  prefs.getBytes("barcfg", b.data(), n);
+  return String(b.data());
+}
+
+// Sound bar in Home: a switch, and one that pauses the TV rule.
+struct BarSwitch : Service::Switch {
+  SpanCharacteristic *on;
+  uint32_t setAt = 0;
+  BarSwitch() : Service::Switch() {
+    on = new Characteristic::On(0);
+    new Characteristic::Name(bar.name.c_str());
+  }
+  boolean update() override {
+    barWant = on->getNewVal() ? 1 : 0;
+    setAt = millis();
+    return true;
+  }
+  void loop() override {
+    if (millis() - setAt < 10000UL) return;
+    int k = barKnown;
+    if (k != -1 && on->getVal() != k) on->setVal(k);
+  }
+};
+
+struct BarFollowSwitch : Service::Switch {
+  SpanCharacteristic *on;
+  BarFollowSwitch() : Service::Switch() {
+    on = new Characteristic::On(barFollow ? 1 : 0);
+    new Characteristic::Name("Sound Bar Follows TV");
+  }
+  boolean update() override {
+    barFollow = on->getNewVal();
+    prefs.putBool("barFollow", barFollow);
+    barEvent(String("follows TV ") + (barFollow ? "on" : "off"));
+    if (!barFollow) barOffDueMs = 0;
+    return true;
+  }
+};
+
+// ---------------------------------------------------------------------------------------------
 // TV
 
 enum TVState { TV_UNKNOWN, TV_ON, TV_OFF };
@@ -490,14 +726,15 @@ static int offVotes = 0, onVotes = 0;
 static uint32_t lastTvPoll = 0;
 
 static int readTV() {   // 1 on, 0 standby, -1 unreachable
-  if (!tvHost.length()) return -1;
+  String host = tvAddr(), psk = tvKey();
+  if (!host.length()) return -1;
   WiFiClient c;
   HTTPClient http;
   http.setConnectTimeout(900);
   http.setTimeout(1500);
-  if (!http.begin(c, "http://" + tvHost + "/sony/system")) return -1;
+  if (!http.begin(c, "http://" + host + "/sony/system")) return -1;
   http.addHeader("Content-Type", "application/json");
-  if (tvPsk.length()) http.addHeader("X-Auth-PSK", tvPsk);
+  if (psk.length()) http.addHeader("X-Auth-PSK", psk);
   int code = http.POST("{\"method\":\"getPowerStatus\",\"id\":50,\"params\":[],\"version\":\"1.0\"}");
   String body = code > 0 ? http.getString() : "";
   http.end();
@@ -508,7 +745,7 @@ static int readTV() {   // 1 on, 0 standby, -1 unreachable
 }
 
 static void pollTV() {
-  if (!tvHost.length()) { tvLabel = "not set"; return; }
+  if (!tvAddr().length()) { tvLabel = "not set"; return; }
   if (millis() - lastTvPoll < TV_POLL_MS) return;
   lastTvPoll = millis();
   int r = readTV();
@@ -523,6 +760,7 @@ static void pollTV() {
     tvOffAtMs = 0;
     if (!first) {
       logEvent("TV on");
+      barTvOn();
       if (followTV && tvOn.enabled && inWindow(tvOn.window, tvOn.from, tvOn.to)) runActions(tvOn, "TV on");
     }
   } else if (tvState != TV_OFF && offVotes >= needOff) {
@@ -533,6 +771,7 @@ static void pollTV() {
       sampledThisEpisode = false;
       ruleFiredMs = 0;
       logEvent("TV off");
+      barTvOff();
       if (followTV && tvOff.enabled && inWindow(tvOff.window, tvOff.from, tvOff.to)) {
         int d = tvOff.delay < 0 ? learnedDelay() : tvOff.delay;
         ruleDueMs = millis() + (uint32_t)d * 1000UL;
@@ -575,6 +814,18 @@ static void runTimers() {
         if (n) logEvent("Late-night sweep: " + String(n) + " off");
       }
     }
+  }
+}
+
+static void runBarTimers() {
+  if (barOffDueMs && (int32_t)(millis() - barOffDueMs) >= 0) {
+    barOffDueMs = 0;
+    if (tvState == TV_OFF) barEvent("TV off rule: " + barPower(false, true));
+  }
+  int w = barWant;
+  if (w != -1) {
+    barWant = -1;
+    barEvent(String("Home: ") + (w ? "on" : "off") + ", " + barPower(w == 1, false));
   }
 }
 
@@ -691,6 +942,15 @@ static void handleInfo() {
   d["uptime"] = (int)(millis() / 1000);
   d["time"] = clockText();
   d["followTV"] = followTV;
+  JsonObject b = d["bar"].to<JsonObject>();
+  b["claimed"] = barToken.length() > 0;
+  b["configured"] = bar.configured;
+  b["state"] = barLabel;
+  b["follow"] = barFollow;
+  JsonArray be = b["events"].to<JsonArray>();
+  xSemaphoreTake(stateLock, portMAX_DELAY);
+  for (auto &e : barEvents) be.add(e);
+  xSemaphoreGive(stateLock);
   String out;
   serializeJson(d, out);
   server.send(200, "application/json", out);
@@ -753,15 +1013,63 @@ static void handleRun() {
   server.send(200, "application/json", "{\"ok\":true}");
 }
 
+static bool barAuthorized() {
+  return barToken.length() && server.header("X-Undertow-Token") == barToken;
+}
+
+static void handleBarClaim() {
+  if (barToken.length()) { server.send(409, "application/json", "{\"error\":\"already paired\"}"); return; }
+  char b[33];
+  for (int i = 0; i < 16; i++) snprintf(b + i * 2, 3, "%02x", (unsigned)(esp_random() & 0xff));
+  barToken = String(b);
+  prefs.putString("bartoken", barToken);
+  barEvent("paired with Undertow");
+  server.send(200, "application/json", "{\"token\":\"" + barToken + "\"}");
+}
+
+static void handleBarConfig() {
+  if (!barAuthorized()) { server.send(401, "application/json", "{\"error\":\"unauthorized\"}"); return; }
+  String body = server.arg("plain");
+  if (!parseBarConfig(body)) { server.send(400, "application/json", "{\"error\":\"bad json\"}"); return; }
+  prefs.putBytes("barcfg", body.c_str(), body.length());
+  lastBarPoll = 0;
+  // Home only learns about new or renamed accessories on a restart.
+  bool restart = bar.configured != barInHome || (barInHome && bar.name != barHomeName);
+  barEvent(restart ? "set up, restarting for Home" : "config updated");
+  server.send(200, "application/json", String("{\"ok\":true,\"restart\":") + (restart ? "true" : "false") + "}");
+  if (restart) {
+    delay(800);
+    ESP.restart();
+  }
+}
+
+static void handleBarPower() {
+  if (!barAuthorized()) { server.send(401, "application/json", "{\"error\":\"unauthorized\"}"); return; }
+  JsonDocument d;
+  if (deserializeJson(d, server.arg("plain"))) { server.send(400, "application/json", "{\"error\":\"bad json\"}"); return; }
+  bool on = d["on"] | false;
+  String via = barPower(on, false);
+  barEvent(String("app test ") + (on ? "on" : "off") + ": " + via);
+  JsonDocument r;
+  r["ok"] = true;
+  r["via"] = via;
+  String out;
+  serializeJson(r, out);
+  server.send(200, "application/json", out);
+}
+
 static void startNetworkServices() {
   if (WiFi.status() != WL_CONNECTED) return;
   if (!serverUp) {
-    const char *headers[] = {"X-Afterglow-Token"};
-    server.collectHeaders(headers, 1);
+    const char *headers[] = {"X-Afterglow-Token", "X-Undertow-Token"};
+    server.collectHeaders(headers, 2);
     server.on("/api/info", HTTP_GET, handleInfo);
     server.on("/api/claim", HTTP_POST, handleClaim);
     server.on("/api/config", HTTP_POST, handleConfig);
     server.on("/api/run", HTTP_POST, handleRun);
+    server.on("/api/bar/claim", HTTP_POST, handleBarClaim);
+    server.on("/api/bar/config", HTTP_POST, handleBarConfig);
+    server.on("/api/bar/power", HTTP_POST, handleBarPower);
     server.onNotFound([]() { server.send(404, "text/plain", "Afterglow Bridge"); });
     server.begin();
     serverUp = true;
@@ -797,6 +1105,8 @@ static void worker(void *) {
 
     pollTV();
     runTimers();
+    runBarTimers();
+    pollBar();
     if (!lights.empty()) {
       pollLight(next % lights.size());
       next++;
@@ -815,12 +1125,21 @@ static void showInfo(const char *) {
   for (auto &L : lights)
     Serial.printf("  %-24s %-15s v%.1f %s %s\n", L.name.c_str(), L.ip.c_str(), L.ver, L.known ? (L.on ? "on" : "off") : "?", L.ok ? "" : "(not answering)");
   for (auto &e : events) Serial.println("  " + e);
+  Serial.printf("Sound bar: %s, %s, Wi-Fi %s, IR %s, follows TV: %s, Undertow paired: %s\n", bar.configured ? bar.name.c_str() : "not set",
+                barLabel.c_str(), barHasWifi() ? bar.ip.c_str() : "-", barHasIR() ? bar.blIp.c_str() : "-",
+                barFollow ? "yes" : "no", barToken.length() ? "yes" : "no");
 }
 
 static void resetPairing(const char *) {
   token = "";
   prefs.remove("token");
   Serial.println("Pairing cleared. Open Afterglow > Apple Home bridge to pair again.");
+}
+
+static void resetBarPairing(const char *) {
+  barToken = "";
+  prefs.remove("bartoken");
+  Serial.println("Undertow pairing cleared. Open Undertow > Follow the TV to pair again.");
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -831,6 +1150,10 @@ void setup() {
   prefs.begin("afterglow", false);
   token = prefs.getString("token", "");
   followTV = prefs.getBool("follow", true);
+  barToken = prefs.getString("bartoken", "");
+  barFollow = prefs.getBool("barFollow", true);
+  String barCfg = loadStoredBarConfig();
+  if (barCfg.length()) parseBarConfig(barCfg);
   loadSamples();
   String cfg = loadStoredConfig();
   if (cfg.length()) {
@@ -844,6 +1167,7 @@ void setup() {
   homeSpan.begin(Category::Bridges, "Afterglow Bridge", "afterglow");
   new SpanUserCommand('i', "- show lights, TV and learned delay", showInfo);
   new SpanUserCommand('R', "- forget the paired phone", resetPairing);
+  new SpanUserCommand('B', "- forget the phone paired from Undertow (sound bar)", resetBarPairing);
 
   new SpanAccessory(1);
     new Service::AccessoryInformation();
@@ -853,7 +1177,7 @@ void setup() {
       new Characteristic::Model("Afterglow Bridge");
       new Characteristic::FirmwareRevision(FW_VERSION);
 
-  std::vector<uint32_t> used = {1, 65000};
+  std::vector<uint32_t> used = {1, 65000, 65001, 65002};
   for (size_t i = 0; i < lights.size(); i++) {
     new SpanAccessory(aidFor(lights[i].id, used));
       new Service::AccessoryInformation();
@@ -871,7 +1195,24 @@ void setup() {
       new Characteristic::Name("Lights Follow TV");
     new FollowSwitch();
 
-  xTaskCreatePinnedToCore(worker, "afterglow", 16384, nullptr, 1, nullptr, 0);
+  if (bar.configured) {
+    barInHome = true;
+    barHomeName = bar.name;
+    new SpanAccessory(65001);
+      new Service::AccessoryInformation();
+        new Characteristic::Identify();
+        new Characteristic::Name(bar.name.c_str());
+        new Characteristic::Manufacturer("VIZIO");
+        new Characteristic::Model("Sound bar");
+      new BarSwitch();
+    new SpanAccessory(65002);
+      new Service::AccessoryInformation();
+        new Characteristic::Identify();
+        new Characteristic::Name("Sound Bar Follows TV");
+      new BarFollowSwitch();
+  }
+
+  xTaskCreatePinnedToCore(worker, "afterglow", 20480, nullptr, 1, nullptr, 0);
   Serial.printf("Afterglow Bridge %s with %d lights\n", FW_VERSION, (int)lights.size());
 }
 
