@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.6",
+          "buildVersion": "6",
+          "date": "2026-10-25T22:23:30Z",
+          "localizedDescription": "- Use Apple-compliant three-part versions for widget rendering (982aad9)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-6/Afterglow-1.0.6-build-6.ipa",
+          "size": 1489354,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.0.5",
           "buildVersion": "5",
           "date": "2026-10-25T13:25:01Z",
@@ -38,11 +47,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.0.5",
-      "versionDate": "2026-10-25T13:25:01Z",
-      "versionDescription": "- Add favourite-light Lock Screen switches and brightness controls (0d14ea1)\n- Bridge: rename the sound bar app to Subwave (11b7b6a)\n- Bridge 1.1: switch the Vizio sound bar with the TV (for Undertow) (ca4ccad)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-5/Afterglow-1.0.0-build-5.ipa",
-      "size": 1489428,
+      "version": "1.0.6",
+      "versionDate": "2026-10-25T22:23:30Z",
+      "versionDescription": "- Use Apple-compliant three-part versions for widget rendering (982aad9)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-6/Afterglow-1.0.6-build-6.ipa",
+      "size": 1489354,
       "appPermissions": {}
     }
   ],
