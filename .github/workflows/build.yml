@@ -69,10 +69,12 @@ jobs:
           # Stamp the build number into the app and widget before signing.
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" Payload/Afterglow.app/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" Payload/Afterglow.app/PlugIns/AfterglowWidget.appex/Info.plist
-          VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Payload/Afterglow.app/Info.plist)
-          # Sideloaders (FlareStore etc.) only compare the version string, so make it <version>.<build>.
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION.$BUILD" Payload/Afterglow.app/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION.$BUILD" Payload/Afterglow.app/PlugIns/AfterglowWidget.appex/Info.plist
+          BASE_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Payload/Afterglow.app/Info.plist)
+          # Apple requires exactly three numeric components for CFBundleShortVersionString.
+          # Keep FlareStore updates monotonic by using the GitHub run number as the patch.
+          VERSION="${BASE_VERSION%.*}.$BUILD"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" Payload/Afterglow.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" Payload/Afterglow.app/PlugIns/AfterglowWidget.appex/Info.plist
           # Ad-hoc sign with the App Group entitlement so AltStore/Sideloadly keep it for the widget.
           codesign --force --sign - --timestamp=none --entitlements AfterglowWidget/AfterglowWidget.entitlements Payload/Afterglow.app/PlugIns/AfterglowWidget.appex
           codesign --force --sign - --timestamp=none --entitlements Afterglow/Afterglow.entitlements Payload/Afterglow.app
