@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.0.5",
+          "buildVersion": "5",
+          "date": "2026-10-25T13:25:01Z",
+          "localizedDescription": "- Add favourite-light Lock Screen switches and brightness controls (0d14ea1)\n- Bridge: rename the sound bar app to Subwave (11b7b6a)\n- Bridge 1.1: switch the Vizio sound bar with the TV (for Undertow) (ca4ccad)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-5/Afterglow-1.0.0-build-5.ipa",
+          "size": 1489428,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.0.4",
           "buildVersion": "4",
           "date": "2026-10-20T21:06:35Z",
@@ -29,11 +38,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.0.4",
-      "versionDate": "2026-10-20T21:06:35Z",
-      "versionDescription": "- Fix colour wheel number types (967ddbc)\n- Fix ambiguous status merge (b879a3a)\n- CI: publish the iOS build log to ci-logs-ios (fa181dc)\n- Afterglow: Tuya lights app with widgets, Control Center, scenes, Siri and an Apple Home bridge (06c3b08)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-4/Afterglow-1.0.0-build-4.ipa",
-      "size": 1450060,
+      "version": "1.0.0.5",
+      "versionDate": "2026-10-25T13:25:01Z",
+      "versionDescription": "- Add favourite-light Lock Screen switches and brightness controls (0d14ea1)\n- Bridge: rename the sound bar app to Subwave (11b7b6a)\n- Bridge 1.1: switch the Vizio sound bar with the TV (for Undertow) (ca4ccad)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-5/Afterglow-1.0.0-build-5.ipa",
+      "size": 1489428,
       "appPermissions": {}
     }
   ],
