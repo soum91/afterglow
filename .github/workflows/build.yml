@@ -16,14 +16,14 @@ env:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app || true
+      - name: Confirm Xcode 27 toolchain
+        run: xcodebuild -version
 
       - name: Install XcodeGen
         run: brew install xcodegen
