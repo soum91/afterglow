@@ -35,7 +35,13 @@ struct FavouriteLightView: View {
                     }
                 }
             }.buttonStyle(.plain)
-        } else { Label("Choose a light", systemImage: "lightbulb").font(.caption) }
+        } else if family == .accessoryCircular {
+            Image(systemName: "lightbulb")
+                .font(.system(size: 20, weight: .semibold))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            Label("Choose a light", systemImage: "lightbulb").font(.caption)
+        }
     }
 }
 @available(iOS 18.0, *) struct LightBrightnessControl: ControlWidget {

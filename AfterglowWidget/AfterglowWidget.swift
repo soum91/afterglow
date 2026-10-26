@@ -89,7 +89,16 @@ struct LightsWidgetView: View {
 
     var body: some View {
         if entry.lights.isEmpty {
-            empty
+            if family == .accessoryCircular {
+                Image(systemName: "lightbulb")
+                    .font(.system(size: 20, weight: .semibold))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if family == .accessoryRectangular {
+                Label("Open Afterglow to load lights", systemImage: "lightbulb")
+                    .font(.caption)
+            } else {
+                empty
+            }
         } else {
             switch family {
             case .systemSmall: small
@@ -278,7 +287,8 @@ struct LightToggleControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         AppIntentControlConfiguration(kind: "com.soum91.afterglow.light", provider: LightToggleProvider()) { value in
             ControlWidgetToggle(value.name, isOn: value.isOn, action: LightSwitchIntent(light: value.entity)) { on in
-                Label(on ? "On" : "Off", systemImage: on ? "lightbulb.fill" : "lightbulb")
+                Image(systemName: on ? "lightbulb.fill" : "lightbulb")
+                    .controlWidgetActionHint(on ? "Turn lights off" : "Turn lights on")
             }
             .tint(.orange)
         }
