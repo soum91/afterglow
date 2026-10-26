@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.8",
+          "buildVersion": "8",
+          "date": "2026-10-26T03:33:14Z",
+          "localizedDescription": "- Build Afterglow widgets with current iOS 27 SDK for rendering compatibility test (81dbd2c)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-8/Afterglow-1.0.8-build-8.ipa",
+          "size": 1486011,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.7",
           "buildVersion": "7",
           "date": "2026-10-26T02:13:29Z",
@@ -56,11 +65,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.7",
-      "versionDate": "2026-10-26T02:13:29Z",
-      "versionDescription": "- Fix empty accessory light icons and use explicit Control Center artwork (43acdfc)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-7/Afterglow-1.0.7-build-7.ipa",
-      "size": 1493733,
+      "version": "1.0.8",
+      "versionDate": "2026-10-26T03:33:14Z",
+      "versionDescription": "- Build Afterglow widgets with current iOS 27 SDK for rendering compatibility test (81dbd2c)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-8/Afterglow-1.0.8-build-8.ipa",
+      "size": 1486011,
       "appPermissions": {}
     }
   ],
