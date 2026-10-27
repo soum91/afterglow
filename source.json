@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.11",
+          "buildVersion": "11",
+          "date": "2026-10-27T01:38:15Z",
+          "localizedDescription": "- Run Shortcuts actions in the app instead of the widget extension (d315109)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-11/Afterglow-1.0.11-build-11.ipa",
+          "size": 1493140,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.10",
           "buildVersion": "10",
           "date": "2026-10-27T01:01:07Z",
@@ -83,11 +92,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.10",
-      "versionDate": "2026-10-27T01:01:07Z",
-      "versionDescription": "- Build Afterglow with Xcode 16.4 again so Shortcuts can add its actions (7b6eb4a)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-10/Afterglow-1.0.10-build-10.ipa",
-      "size": 1493274,
+      "version": "1.0.11",
+      "versionDate": "2026-10-27T01:38:15Z",
+      "versionDescription": "- Run Shortcuts actions in the app instead of the widget extension (d315109)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-11/Afterglow-1.0.11-build-11.ipa",
+      "size": 1493140,
       "appPermissions": {}
     }
   ],
