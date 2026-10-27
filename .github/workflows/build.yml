@@ -75,6 +75,10 @@ jobs:
           VERSION="${BASE_VERSION%.*}.$BUILD"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" Payload/Afterglow.app/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" Payload/Afterglow.app/PlugIns/AfterglowWidget.appex/Info.plist
+          # Keep a genuinely unsigned IPA for testing sideloader extension signing.
+          # This differs from the normal ad-hoc-signed release only in pre-signature state.
+          UNSIGNED_IPA="$APP-$VERSION-build-$BUILD-truly-unsigned.ipa"
+          zip -qr "$UNSIGNED_IPA" Payload
           # Ad-hoc sign with the App Group entitlement so AltStore/Sideloadly keep it for the widget.
           codesign --force --sign - --timestamp=none --entitlements AfterglowWidget/AfterglowWidget.entitlements Payload/Afterglow.app/PlugIns/AfterglowWidget.appex
           codesign --force --sign - --timestamp=none --entitlements Afterglow/Afterglow.entitlements Payload/Afterglow.app
@@ -83,6 +87,7 @@ jobs:
           zip -qr "$IPA" Payload
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "IPA=$IPA" >> "$GITHUB_ENV"
+          echo "UNSIGNED_IPA=$UNSIGNED_IPA" >> "$GITHUB_ENV"
 
       - name: Changelog
         run: |
@@ -93,7 +98,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP }}-build-${{ env.BUILD }}-ipa
-          path: ${{ env.IPA }}
+          path: |
+            ${{ env.IPA }}
+            ${{ env.UNSIGNED_IPA }}
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -102,7 +109,9 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: Afterglow ${{ env.VERSION }} build ${{ env.BUILD }}
           body_path: release-notes.md
-          files: ${{ env.IPA }}
+          files: |
+            ${{ env.IPA }}
+            ${{ env.UNSIGNED_IPA }}
           make_latest: true
 
       - name: Update sideloading source (FlareStore / AltStore / SideStore)
