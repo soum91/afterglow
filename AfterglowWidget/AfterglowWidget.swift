@@ -12,6 +12,7 @@ struct AfterglowWidgets: WidgetBundle {
 
         LightsWidget()
         LightToggleControl()
+        LightQuickControl()
         SceneButtonControl()
     }
 }
@@ -332,5 +333,25 @@ struct SceneButtonControl: ControlWidget {
         }
         .displayName("Scene")
         .description("Run one of your Afterglow scenes.")
+    }
+}
+
+
+/// Independent, provider-free Control Center experiment.
+/// Mirrors the working Home / Lock Screen widget's cached-state read and
+/// SetLightPowerIntent, instead of AppIntentControlConfiguration.
+@available(iOS 18.0, *)
+struct LightQuickControl: ControlWidget {
+    private var anyOn: Bool { LightStore.snaps().contains(where: \.isOn) }
+
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: "com.soum91.afterglow.light.quick.v1") {
+            ControlWidgetButton(action: SetLightPowerIntent(light: .all, on: !anyOn)) {
+                Label("Lights", systemImage: anyOn ? "lightbulb.fill" : "lightbulb")
+            }
+            .tint(.orange)
+        }
+        .displayName("Light Quick")
+        .description("Toggle all lights using the same action as the Home widget.")
     }
 }
