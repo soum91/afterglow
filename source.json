@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.20",
+          "buildVersion": "20",
+          "date": "2026-10-27T22:00:50Z",
+          "localizedDescription": "- Afterglow: TV tile inputs, purifier/IR/Govee status and Wi-Fi firmware updates for the bridge (09f5f90)\n- Bridge: bigger app slots and observer-only Bluetooth to fit Govee (72ae819)\n- Bridge: Govee thermometer in Apple Home over Bluetooth (gateway replacement) (95da7d3)\n- Bridge: include extras before the API handlers (73ece4d)\n- Bridge 1.3: purifier, IR remotes and Sony TV in Apple Home, Wi-Fi updates (cf07204)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-20/Afterglow-1.0.20-build-20.ipa",
+          "size": 1566527,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.19",
           "buildVersion": "19",
           "date": "2026-10-27T04:16:23Z",
@@ -164,11 +173,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.19",
-      "versionDate": "2026-10-27T04:16:23Z",
-      "versionDescription": "- Add app-only one-tap all-lights Shortcut for Control Center fallback (63bd345)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-19/Afterglow-1.0.19-build-19.ipa",
-      "size": 1514258,
+      "version": "1.0.20",
+      "versionDate": "2026-10-27T22:00:50Z",
+      "versionDescription": "- Afterglow: TV tile inputs, purifier/IR/Govee status and Wi-Fi firmware updates for the bridge (09f5f90)\n- Bridge: bigger app slots and observer-only Bluetooth to fit Govee (72ae819)\n- Bridge: Govee thermometer in Apple Home over Bluetooth (gateway replacement) (95da7d3)\n- Bridge: include extras before the API handlers (73ece4d)\n- Bridge 1.3: purifier, IR remotes and Sony TV in Apple Home, Wi-Fi updates (cf07204)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-20/Afterglow-1.0.20-build-20.ipa",
+      "size": 1566527,
       "appPermissions": {}
     }
   ],
