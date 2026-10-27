@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.2.0"
+#define FW_VERSION "1.3.0"
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -943,6 +943,7 @@ static void handleInfo() {
   d["uptime"] = (int)(millis() / 1000);
   d["time"] = clockText();
   d["followTV"] = followTV;
+  extrasInfo(d);
   JsonObject b = d["bar"].to<JsonObject>();
   b["claimed"] = barToken.length() > 0;
   b["configured"] = bar.configured;
@@ -978,6 +979,17 @@ static void handleConfig() {
   String newSig;
   for (auto &L : fresh) newSig += L.id + "|" + L.name + "|" + L.sw + L.mode + L.bri + L.ct + L.col + ";";
   bool restart = oldSig != newSig;
+  {
+    // The TV tile (name, inputs, or TV added/removed) also needs a restart for Home.
+    JsonDocument td;
+    String host;
+    if (!deserializeJson(td, body)) host = td["tv"]["ip"] | "";
+    if (!host.length()) host = bar.tvIp;
+    String n;
+    std::vector<TVInput> ins;
+    parseTVExtras(body, n, ins);
+    if (tvSignature(host, n, ins) != tvHomeSig) restart = true;
+  }
   if (!restart) {
     // Same accessories: update addresses, keys and rules in place.
     xSemaphoreTake(stateLock, portMAX_DELAY);
@@ -1062,8 +1074,8 @@ static void handleBarPower() {
 static void startNetworkServices() {
   if (WiFi.status() != WL_CONNECTED) return;
   if (!serverUp) {
-    const char *headers[] = {"X-Afterglow-Token", "X-Subwave-Token"};
-    server.collectHeaders(headers, 2);
+    const char *headers[] = {"X-Afterglow-Token", "X-Subwave-Token", "X-Device-Token"};
+    server.collectHeaders(headers, 3);
     server.on("/api/info", HTTP_GET, handleInfo);
     server.on("/api/claim", HTTP_POST, handleClaim);
     server.on("/api/config", HTTP_POST, handleConfig);
@@ -1071,6 +1083,7 @@ static void startNetworkServices() {
     server.on("/api/bar/claim", HTTP_POST, handleBarClaim);
     server.on("/api/bar/config", HTTP_POST, handleBarConfig);
     server.on("/api/bar/power", HTTP_POST, handleBarPower);
+    registerExtraRoutes();
     server.onNotFound([]() { server.send(404, "text/plain", "Afterglow Bridge"); });
     server.begin();
     serverUp = true;
@@ -1082,6 +1095,8 @@ static void startNetworkServices() {
     if (mdnsUp) MDNS.addServiceTxt("afterglow", "tcp", "v", FW_VERSION);
   }
 }
+
+#include "Extras.h"
 
 // ---------------------------------------------------------------------------------------------
 // Status screen (boards with a built-in OLED)
@@ -1114,7 +1129,7 @@ static void drawStatus() {
       } else {
         l[6] = "Off delay " + String(learnedDelay()) + "s";
       }
-      l[7] = clockText();
+      l[7] = pur.configured && ps.pm >= 0 ? clockText() + "  PM " + String((int)lroundf(ps.pm)) : clockText();
     }
   } else if (mode & WIFI_AP) {
     l[1] = "Wi-Fi setup:";
@@ -1155,6 +1170,7 @@ static void worker(void *) {
       continue;
     }
 
+    if (runExtras()) continue;
     pollTV();
     runTimers();
     runBarTimers();
@@ -1214,6 +1230,7 @@ void setup() {
     std::vector<Light> scratch;
     parseConfig(cfg, scratch, true);
   }
+  loadExtras(cfg);
 
   homeSpan.enableAutoStartAP();
   homeSpan.setSketchVersion(FW_VERSION);
@@ -1230,7 +1247,7 @@ void setup() {
       new Characteristic::Model("Afterglow Bridge");
       new Characteristic::FirmwareRevision(FW_VERSION);
 
-  std::vector<uint32_t> used = {1, 65000, 65001, 65002};
+  std::vector<uint32_t> used = {1, 65000, 65001, 65002, 65010};
   for (size_t i = 0; i < lights.size(); i++) {
     new SpanAccessory(aidFor(lights[i].id, used));
       new Service::AccessoryInformation();
@@ -1264,6 +1281,8 @@ void setup() {
         new Characteristic::Name("Sound Bar Follows TV");
       new BarFollowSwitch();
   }
+
+  addExtraAccessories(used);
 
   xTaskCreatePinnedToCore(worker, "afterglow", 20480, nullptr, 1, nullptr, 0);
   Serial.printf("Afterglow Bridge %s with %d lights\n", FW_VERSION, (int)lights.size());

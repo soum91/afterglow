@@ -41,6 +41,7 @@ jobs:
             echo "=== $chip ===" | tee -a build.log
             arduino-cli compile \
               --fqbn "esp32:esp32:${chip}:PartitionScheme=min_spiffs" \
+              --build-property "compiler.cpp.extra_flags=-DFW_BUILD=${{ github.run_number }}" \
               --export-binaries --output-dir "build/${chip}" \
               Bridge/AfterglowBridge 2>&1 | tee -a build.log
             cp "build/${chip}/AfterglowBridge.ino.merged.bin" "dist/AfterglowBridge-${chip}-full.bin"
