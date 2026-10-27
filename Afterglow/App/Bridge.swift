@@ -258,6 +258,19 @@ enum BridgeSync {
     }
 }
 
+extension BridgeAPI {
+    /// Clears Exhale's or Redshift's pairing so it can pair again (after a reinstall).
+    static func resetDevicePairing(_ app: String, _ cfg: BridgeConfig = .stored) async throws {
+        guard let u = url(cfg, "/api/dev/reset?app=\(app)") else { throw BridgeError.message("Bad bridge address.") }
+        var req = URLRequest(url: u)
+        req.httpMethod = "POST"
+        req.timeoutInterval = 5
+        req.setValue(cfg.token, forHTTPHeaderField: "X-Afterglow-Token")
+        let (_, resp) = try await URLSession.shared.data(for: req)
+        guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw BridgeError.message("The bridge refused. Update its firmware first.") }
+    }
+}
+
 /// Bridge firmware updates over Wi-Fi: the phone fetches the right .bin from GitHub and uploads it.
 enum BridgeFirmware {
     struct Latest { var build: Int; var url: URL }

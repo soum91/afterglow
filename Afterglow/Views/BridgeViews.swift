@@ -130,6 +130,14 @@ struct HomeBridgeView: View {
             } else {
                 LabeledContent("IR remotes", value: "send them from Redshift")
             }
+            if i.purifier?.paired == true {
+                Button("Reset Exhale pairing") { Task { status = (try? await BridgeAPI.resetDevicePairing("exhale")) != nil ? "Exhale can pair again." : "Couldn't reset."; await loadInfo() } }
+                    .font(.footnote)
+            }
+            if i.ir?.paired == true {
+                Button("Reset Redshift pairing") { Task { status = (try? await BridgeAPI.resetDevicePairing("redshift")) != nil ? "Redshift can pair again." : "Couldn't reset."; await loadInfo() } }
+                    .font(.footnote)
+            }
             if let g = i.govee {
                 if g.locked == true {
                     LabeledContent("Govee \(g.name ?? "")", value: g.temp.map { String(format: "%.1f° · %.0f%%", $0, g.humidity ?? 0) } ?? "not heard lately")

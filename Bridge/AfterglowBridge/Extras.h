@@ -637,6 +637,16 @@ static void handleDevClaim() {
   server.send(200, "application/json", String("{\"token\":\"") + b + "\"}");
 }
 
+// Afterglow (the owner) can clear Exhale's or Redshift's pairing, e.g. after reinstalling one of them.
+static void handleDevReset() {
+  String app = server.arg("app");
+  if (!token.length() || server.header("X-Afterglow-Token") != token) { server.send(401, "application/json", "{\"error\":\"unauthorized\"}"); return; }
+  if (!devAppOK(app)) { server.send(400, "application/json", "{\"error\":\"unknown app\"}"); return; }
+  prefs.remove(("tok_" + app).c_str());
+  logEvent(app + " pairing cleared");
+  server.send(200, "application/json", "{\"ok\":true}");
+}
+
 static void handleDevConfig() {
   String app = server.arg("app");
   String tok = devToken(app);
@@ -718,6 +728,7 @@ static void registerExtraRoutes() {
   server.on("/api/dev/claim", HTTP_POST, handleDevClaim);
   server.on("/api/dev/config", HTTP_POST, handleDevConfig);
   server.on("/api/dev/test", HTTP_POST, handleDevTest);
+  server.on("/api/dev/reset", HTTP_POST, handleDevReset);
   server.on("/api/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
 }
 
