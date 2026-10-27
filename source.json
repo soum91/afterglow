@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.16",
+          "buildVersion": "16",
+          "date": "2026-10-27T02:32:03Z",
+          "localizedDescription": "- Use working Home widget light action for Control Center button (9009f41)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-16/Afterglow-1.0.16-build-16.ipa",
+          "size": 1508115,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.15",
           "buildVersion": "15",
           "date": "2026-10-27T02:29:20Z",
@@ -128,11 +137,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.15",
-      "versionDate": "2026-10-27T02:29:20Z",
-      "versionDescription": "- Register dedicated interactive 1x1 Lock Screen light switch (e991cd0)\n- Add Lock Screen 1x1 switch using proven Home widget intent (ed28405)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-15/Afterglow-1.0.15-build-15.ipa",
-      "size": 1508044,
+      "version": "1.0.16",
+      "versionDate": "2026-10-27T02:32:03Z",
+      "versionDescription": "- Use working Home widget light action for Control Center button (9009f41)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-16/Afterglow-1.0.16-build-16.ipa",
+      "size": 1508115,
       "appPermissions": {}
     }
   ],
