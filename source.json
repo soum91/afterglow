@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.18",
+          "buildVersion": "18",
+          "date": "2026-10-27T03:34:16Z",
+          "localizedDescription": "- Point bridge setup at the one-click web installer (b93f511)\n- Bridge 1.2: one-click web installer and OLED status screen (37bf2c3)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-18/Afterglow-1.0.18-build-18.ipa",
+          "size": 1511507,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.17",
           "buildVersion": "17",
           "date": "2026-10-27T03:05:00Z",
@@ -146,11 +155,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.17",
-      "versionDate": "2026-10-27T03:05:00Z",
-      "versionDescription": "- Add provider-free Control Center light button using proven widget action (1afb04c)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-17/Afterglow-1.0.17-build-17.ipa",
-      "size": 1511456,
+      "version": "1.0.18",
+      "versionDate": "2026-10-27T03:34:16Z",
+      "versionDescription": "- Point bridge setup at the one-click web installer (b93f511)\n- Bridge 1.2: one-click web installer and OLED status screen (37bf2c3)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-18/Afterglow-1.0.18-build-18.ipa",
+      "size": 1511507,
       "appPermissions": {}
     }
   ],
