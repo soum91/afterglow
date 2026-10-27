@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.12",
+          "buildVersion": "12",
+          "date": "2026-10-27T01:48:01Z",
+          "localizedDescription": "- Add a read-only Lock Screen status widget (9f59c9d)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-12/Afterglow-1.0.12-build-12.ipa",
+          "size": 1505233,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.11",
           "buildVersion": "11",
           "date": "2026-10-27T01:38:15Z",
@@ -92,11 +101,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.11",
-      "versionDate": "2026-10-27T01:38:15Z",
-      "versionDescription": "- Run Shortcuts actions in the app instead of the widget extension (d315109)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-11/Afterglow-1.0.11-build-11.ipa",
-      "size": 1493140,
+      "version": "1.0.12",
+      "versionDate": "2026-10-27T01:48:01Z",
+      "versionDescription": "- Add a read-only Lock Screen status widget (9f59c9d)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-12/Afterglow-1.0.12-build-12.ipa",
+      "size": 1505233,
       "appPermissions": {}
     }
   ],
