@@ -56,6 +56,17 @@ struct BridgeInfo: Decodable {
     var events: [String]?
     var uptime: Int?
     var time: String?
+    var build: Int?
+    var chip: String?
+    var purifier: Purifier?
+    var ir: IR?
+    var govee: Govee?
+    var tvTile: TVTile?
+
+    struct Purifier: Decodable { var paired: Bool?; var configured: Bool?; var name: String?; var ok: Bool?; var on: Bool?; var pm25: Double?; var speed: Int? }
+    struct IR: Decodable { struct R: Decodable { var name: String; var buttons: Int? }; var paired: Bool?; var remotes: [R]? }
+    struct Govee: Decodable { var locked: Bool?; var name: String?; var temp: Double?; var humidity: Double?; var battery: Int? }
+    struct TVTile: Decodable { var inHome: Bool?; var inputs: [String]? }
 }
 
 enum BridgeError: LocalizedError {
@@ -141,7 +152,8 @@ enum BridgeAPI {
         return [
             "utcOffset": TimeZone.current.secondsFromGMT(),
             "lights": ls,
-            "tv": ["ip": tv.host, "psk": tv.psk],
+            "tv": ["ip": tv.host, "psk": tv.psk, "name": tv.name.isEmpty ? "TV" : tv.name,
+                   "inputs": (tv.inputs ?? []).map { ["uri": $0.uri, "name": $0.name] }],
             "tvOff": ["enabled": auto.tvOffEnabled && tv.isSet, "delay": auto.tvOffDelay, "window": auto.tvOffWindow,
                       "from": auto.tvOffFrom, "to": auto.tvOffTo, "actions": actions(auto.tvOffScene, fallbackOff: true)],
             "tvOn": ["enabled": auto.tvOnEnabled && tv.isSet && auto.tvOnScene != nil, "window": auto.tvOnWindow,
@@ -243,5 +255,52 @@ enum BridgeSync {
         } catch {
             return "Couldn't reach the bridge: \(error.localizedDescription)"
         }
+    }
+}
+
+/// Bridge firmware updates over Wi-Fi: the phone fetches the right .bin from GitHub and uploads it.
+enum BridgeFirmware {
+    struct Latest { var build: Int; var url: URL }
+
+    static func latest(chip: String) async throws -> Latest? {
+        let api = URL(string: "https://api.github.com/repos/soum91/afterglow/releases/tags/firmware-latest")!
+        var req = URLRequest(url: api)
+        req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        let (data, _) = try await URLSession.shared.data(for: req)
+        guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let assets = obj["assets"] as? [[String: Any]] else { return nil }
+        let prefix = "AfterglowBridge-\(chip)-build-"
+        for a in assets {
+            guard let name = a["name"] as? String, name.hasPrefix(prefix), name.hasSuffix("-app.bin"),
+                  let n = Int(name.dropFirst(prefix.count).dropLast("-app.bin".count)),
+                  let s = a["browser_download_url"] as? String, let u = URL(string: s) else { continue }
+            return Latest(build: n, url: u)
+        }
+        return nil
+    }
+
+    static func install(_ latest: Latest, cfg: BridgeConfig = .stored, progress: @escaping (String) -> Void) async throws {
+        progress("Downloading build \(latest.build)…")
+        let (bin, resp) = try await URLSession.shared.data(from: latest.url)
+        guard (resp as? HTTPURLResponse)?.statusCode == 200, bin.count > 100_000, bin.first == 0xE9 else {
+            throw BridgeError.message("The download didn't look like ESP32 firmware.")
+        }
+        progress("Sending \(bin.count / 1024) KB to the bridge…")
+        guard let u = BridgeAPI.url(cfg, "/api/update") else { throw BridgeError.message("Bad bridge address.") }
+        let boundary = "afterglow-\(UUID().uuidString)"
+        var body = Data()
+        body.append(Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"fw\"; filename=\"fw.bin\"\r\nContent-Type: application/octet-stream\r\n\r\n".utf8))
+        body.append(bin)
+        body.append(Data("\r\n--\(boundary)--\r\n".utf8))
+        var req = URLRequest(url: u)
+        req.httpMethod = "POST"
+        req.timeoutInterval = 180
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        req.setValue(cfg.token, forHTTPHeaderField: "X-Afterglow-Token")
+        let (data, r) = try await URLSession.shared.upload(for: req, from: body)
+        let code = (r as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 { throw BridgeError.message("The bridge rejected this phone's token.") }
+        guard code == 200 else { throw BridgeError.message("Update failed: \(String(decoding: data, as: UTF8.self))") }
+        progress("Installed. The bridge is restarting (about 20 s).")
     }
 }

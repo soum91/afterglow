@@ -8,6 +8,8 @@ struct HomeBridgeView: View {
     @State private var status: String?
     @State private var busy = false
     @State private var manualHost = ""
+    @State private var latest: BridgeFirmware.Latest?
+    @State private var updating: String?
     private let firmware = URL(string: "https://github.com/soum91/afterglow/releases/tag/firmware-latest")!
     private let guide = URL(string: "https://github.com/soum91/afterglow/tree/main/Bridge")!
     private let flasher = URL(string: "https://soum91.github.io/afterglow/")!
@@ -27,7 +29,7 @@ struct HomeBridgeView: View {
                 Section("Your bridge") {
                     LabeledContent("Address", value: "\(cfg.host):\(cfg.port)")
                     if let i = info {
-                        LabeledContent("Firmware", value: i.version ?? "?")
+                        LabeledContent("Firmware", value: "\(i.version ?? "?")\(i.build.map { $0 > 0 ? " (build \($0))" : "" } ?? "")")
                         LabeledContent("Lights in Apple Home", value: "\(i.lights?.count ?? 0)")
                         if let tv = i.tv?.state { LabeledContent("TV", value: tv) }
                         if let d = i.learnedDelay {
@@ -62,6 +64,8 @@ struct HomeBridgeView: View {
                         info = nil
                     }
                 }
+                if let i = info { alsoInHome(i) }
+                firmwareSection
             } else {
                 Section {
                     if finder.searching { HStack { ProgressView(); Text("Looking for the bridge…") } }
@@ -108,6 +112,77 @@ struct HomeBridgeView: View {
         .onDisappear { finder.stop() }
     }
 
+    @ViewBuilder private func alsoInHome(_ i: BridgeInfo) -> some View {
+        Section {
+            if let t = i.tvTile, t.inHome == true {
+                LabeledContent("TV tile", value: (t.inputs ?? []).isEmpty ? "power and remote" : "\(t.inputs!.count) inputs")
+            } else {
+                LabeledContent("TV tile", value: TVConfig.stored.isSet ? "send to add it" : "set the TV first")
+            }
+            if let p = i.purifier, p.configured == true {
+                LabeledContent(p.name ?? "Air purifier", value: p.ok == false ? "not answering" :
+                                (p.on == true ? "on" : "off") + (p.pm25.map { " · PM2.5 \(Int($0.rounded()))" } ?? ""))
+            } else {
+                LabeledContent("Air purifier", value: i.purifier?.paired == true ? "paired, nothing sent" : "send it from Exhale")
+            }
+            if let r = i.ir?.remotes, !r.isEmpty {
+                ForEach(r, id: \.name) { x in LabeledContent(x.name, value: "IR\((x.buttons ?? 0) > 0 ? " + \(x.buttons!) buttons" : "")") }
+            } else {
+                LabeledContent("IR remotes", value: "send them from Redshift")
+            }
+            if let g = i.govee {
+                if g.locked == true {
+                    LabeledContent("Govee \(g.name ?? "")", value: g.temp.map { String(format: "%.1f° · %.0f%%", $0, g.humidity ?? 0) } ?? "not heard lately")
+                } else {
+                    LabeledContent("Govee thermometer", value: "listening (picks the closest in 30 s)")
+                }
+            }
+        } header: {
+            Text("Also in Apple Home")
+        } footer: {
+            Text("The purifier and IR remotes are sent from Exhale and Redshift (each has Settings › Apple Home bridge). The Govee thermometer is picked up over Bluetooth on its own; keep the bridge within a room of it.")
+        }
+    }
+
+    @ViewBuilder private var firmwareSection: some View {
+        Section {
+            if let i = info, let chip = i.chip {
+                let current = i.build ?? 0
+                if let l = latest, l.build > current {
+                    Button {
+                        Task { await runUpdate(l) }
+                    } label: {
+                        Label("Update to build \(l.build)", systemImage: "arrow.down.circle.fill")
+                    }
+                    .disabled(updating != nil)
+                } else if latest != nil {
+                    LabeledContent("Firmware", value: "Up to date")
+                }
+                if let u = updating { Text(u).font(.footnote).foregroundStyle(.secondary) }
+                Button("Check for updates") { Task { latest = try? await BridgeFirmware.latest(chip: chip) } }
+            } else {
+                Text("This firmware is too old to update over Wi-Fi. Flash it once more from a computer (soum91.github.io/afterglow); after that, updates come through here.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Firmware")
+        } footer: {
+            Text("Updates download from GitHub and go to the bridge over your Wi-Fi. Pairing, Wi-Fi and Home setup are kept.")
+        }
+    }
+
+    private func runUpdate(_ l: BridgeFirmware.Latest) async {
+        updating = "Starting…"
+        do {
+            try await BridgeFirmware.install(l) { msg in Task { @MainActor in updating = msg } }
+            try? await Task.sleep(nanoseconds: 25_000_000_000)
+            await loadInfo()
+            updating = (info?.build ?? 0) >= l.build ? "Updated to build \(l.build)." : "Sent. If the version doesn't change, refresh in a minute."
+        } catch {
+            updating = error.localizedDescription
+        }
+    }
+
     private func pair(host: String, port: Int) async {
         guard !host.isEmpty else { return }
         busy = true
@@ -144,6 +219,7 @@ struct HomeBridgeView: View {
 
     private func loadInfo() async {
         do { info = try await BridgeAPI.info(cfg) } catch { status = "Bridge not answering: \(error.localizedDescription)" }
+        if latest == nil, let chip = info?.chip { latest = try? await BridgeFirmware.latest(chip: chip) }
     }
 
     private func step(_ n: Int, _ title: String, _ body: String) -> some View {
@@ -173,13 +249,20 @@ struct AutomationsView: View {
             Section {
                 TextField("TV IP address", text: $tv.host).keyboardType(.decimalPad)
                 SecureField("Pre-shared key (only if you set one)", text: $tv.psk)
+                TextField("Name in Apple Home", text: $tv.name)
                 Button("Test") {
                     TVConfig.stored = tv
                     tvTest = "Asking the TV…"
                     Task {
                         let p = await TV.power(tv)
-                        tvTest = "TV says: \(p.label)"
                         store.tvPower = p
+                        if let ins = await TV.inputs(tv) {
+                            tv.inputs = ins
+                            TVConfig.stored = tv
+                            tvTest = "TV says: \(p.label). Inputs: \(ins.map(\.name).joined(separator: ", "))"
+                        } else {
+                            tvTest = "TV says: \(p.label). Couldn't read its inputs (the TV has to be on, with the pre-shared key set)."
+                        }
                     }
                 }
                 if let tvTest { Text(tvTest).font(.footnote).foregroundStyle(.secondary) }
@@ -261,6 +344,10 @@ struct AutomationsView: View {
         Automations.stored = auto
         saved = "Saved."
         Task {
+            if tv.isSet, let ins = await TV.inputs(tv) {
+                tv.inputs = ins
+                TVConfig.stored = tv
+            }
             await store.refreshTV()
             if let r = await BridgeSync.pushIfChanged() { saved = r }
         }
