@@ -830,6 +830,8 @@ static void runBarTimers() {
   }
 }
 
+#include "Extras.h"
+
 // ---------------------------------------------------------------------------------------------
 // Talking to lights
 
@@ -1095,8 +1097,6 @@ static void startNetworkServices() {
     if (mdnsUp) MDNS.addServiceTxt("afterglow", "tcp", "v", FW_VERSION);
   }
 }
-
-#include "Extras.h"
 
 // ---------------------------------------------------------------------------------------------
 // Status screen (boards with a built-in OLED)
