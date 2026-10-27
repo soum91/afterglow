@@ -2,7 +2,16 @@
 
 ESP32 firmware that puts your Tuya lights in Apple Home and runs the TV automations, with no HomePod, Apple TV, cloud or phone involved.
 
-In Home you get each light (on, brightness, white temperature, colour where the bulb has them) plus a **Lights Follow TV** switch that pauses the TV automations.
+In Home you get:
+
+- **Lights** from Afterglow: on, brightness, white temperature, colour, plus a **Lights Follow TV** switch.
+- **Sony TV** tile (from Afterglow's TV settings): power, inputs, volume, and the Control Center remote (Bravia REST + IRCC; needs IP control with a pre-shared key).
+- **Air purifier** from Exhale (Settings › Apple Home bridge): purifier tile with speed and auto/manual, PM2.5 air quality sensor, filter life, child lock, display switch. With Keep display off on in Exhale, the bridge turns the display back off whenever it comes on by itself.
+- **IR remotes** from Redshift (Settings › Apple Home bridge): power as a switch, other buttons as one-tap buttons. IR can't report back, so the switch shows what was last sent.
+- **Vizio sound bar** from Subwave.
+- **Govee thermometer** (H5102 and similar) over Bluetooth, like a Govee gateway: temperature, humidity, battery. On first boot it picks the strongest Govee sensor it hears within 30 s; `@G` on the serial console picks again. Not on ESP32-C3 builds (no flash room).
+
+Firmware updates go over Wi-Fi from Afterglow › Settings › Apple Home bridge › Firmware, after the first USB flash.
 
 ## What you need
 
@@ -60,6 +69,7 @@ Since firmware 1.1 the bridge also switches a Vizio sound bar with the TV, set u
 
 - `@i` lights, TV, learned delay, sound bar, recent events
 - `@R` forget the paired phone (to pair a different one)
+- `@G` forget the Govee thermometer and pick again
 - `@B` forget the phone paired from Subwave
 - `?` HomeSpan commands (Wi-Fi reset, unpair, factory reset)
 
