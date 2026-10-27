@@ -10,7 +10,7 @@ struct HomeBridgeView: View {
     @State private var manualHost = ""
     private let firmware = URL(string: "https://github.com/soum91/afterglow/releases/tag/firmware-latest")!
     private let guide = URL(string: "https://github.com/soum91/afterglow/tree/main/Bridge")!
-    private let flasher = URL(string: "https://espressif.github.io/esptool-js/")!
+    private let flasher = URL(string: "https://soum91.github.io/afterglow/")!
 
     var body: some View {
         Form {
@@ -88,7 +88,7 @@ struct HomeBridgeView: View {
 
             Section {
                 step(1, "Get an ESP32 board", "Any ESP32, ESP32-S3 or ESP32-C3 dev board with USB. Power it from any USB charger.")
-                step(2, "Flash the firmware", "Download the .bin for your chip, open the web flasher in Chrome on a computer, connect, write it at 0x0.")
+                step(2, "Flash the firmware", "On a computer, open soum91.github.io/afterglow in Chrome or Edge and tap Connect and install. It picks the right firmware for your board. Phones can't flash.")
                 step(3, "Join its Wi-Fi", "Join \"HomeSpan-Setup\" (password homespan), enter your 2.4 GHz Wi-Fi and a setup code.")
                 step(4, "Pair it here", "Come back to this screen. Afterglow finds it and sends your lights.")
                 step(5, "Add to Home", "Home app › + › Add Accessory › More options › \"Afterglow Bridge\", enter the setup code (default 466-37-726).")
@@ -96,7 +96,7 @@ struct HomeBridgeView: View {
 
             Section {
                 Link(destination: firmware) { Label("Firmware download", systemImage: "arrow.down.circle") }
-                Link(destination: flasher) { Label("ESP web flasher", systemImage: "bolt.horizontal.circle") }
+                Link(destination: flasher) { Label("Web installer (open on a computer)", systemImage: "bolt.horizontal.circle") }
                 Link(destination: guide) { Label("Full guide", systemImage: "book") }
             }
         }

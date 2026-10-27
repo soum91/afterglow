@@ -12,15 +12,16 @@ In Home you get each light (on, brightness, white temperature, colour where the 
 
 ## 1. Flash
 
-Download from [Releases](https://github.com/soum91/afterglow/releases/tag/firmware-latest):
+Easiest: on a **computer** (Chrome or Edge on Windows, Mac, Linux or ChromeOS; phones can't do USB flashing) open **https://soum91.github.io/afterglow/**, plug the board in, click **Connect and install**, pick the port, tick Erase on the first install. It picks the right firmware for your chip.
 
-| Board | First install | Updates |
-|---|---|---|
-| ESP32 (most common) | `AfterglowBridge-esp32-build-N-full.bin` at `0x0` | `...-app.bin` at `0x10000` |
-| ESP32-S3 | `AfterglowBridge-esp32s3-build-N-full.bin` at `0x0` | `...-app.bin` at `0x10000` |
-| ESP32-C3 | `AfterglowBridge-esp32c3-build-N-full.bin` at `0x0` | `...-app.bin` at `0x10000` |
+No port in the list:
+- Swap the cable. Charge-only micro-USB cables are the number one cause.
+- Boards with a CH340 USB chip (ideaspark and most cheap ESP32s) need the WCH driver on Windows ([CH341SER.EXE](https://www.wch-ic.com/downloads/CH341SER_EXE.html)); macOS mostly has it built in, otherwise [WCH's Mac driver](https://www.wch-ic.com/downloads/CH34XSER_MAC_ZIP.html).
+- Stuck on "Connecting": hold BOOT, tap EN/RST, release BOOT, retry.
 
-Open https://espressif.github.io/esptool-js/, Connect (hold BOOT if it won't), set the address, pick the file, Program, then press RESET. Updating with the `-app.bin` keeps Wi-Fi and the Home pairing.
+By hand: files are on [Releases](https://github.com/soum91/afterglow/releases/tag/firmware-latest). `-full.bin` at `0x0` for a first install, `-app.bin` at `0x10000` to update without losing Wi-Fi and the Home pairing, using https://espressif.github.io/esptool-js/.
+
+Boards with a built-in 0.96" OLED (like the ideaspark ESP32) show setup steps, the bridge's IP and live status on the screen.
 
 ## 2. Wi-Fi
 
