@@ -288,10 +288,10 @@ struct LightToggleProvider: AppIntentControlValueProvider {
 struct LightToggleControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         AppIntentControlConfiguration(kind: "com.soum91.afterglow.light", provider: LightToggleProvider()) { value in
-            // Use an action button rather than a SetValueIntent-backed toggle.
-            // The previous control was unresponsive in Control Center on iOS 27.
-            // The shared ToggleLightIntent is also used by interactive Home widgets.
-            ControlWidgetButton(action: ToggleLightIntent(light: value.entity ?? .all)) {
+            // Match the working Home widget's SetLightPowerIntent path exactly.
+            // The control preview may still fail to render if iOS cannot host
+            // Control Widgets, independently of whether this intent works.
+            ControlWidgetButton(action: SetLightPowerIntent(light: value.entity ?? .all, on: !value.isOn)) {
                 Label(value.name, systemImage: value.isOn ? "lightbulb.fill" : "lightbulb")
             }
             .tint(.orange)
