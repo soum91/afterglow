@@ -94,8 +94,27 @@ struct AfterglowShortcuts: AppShortcutsProvider {
             "Toggle \(\.$light) in \(.applicationName)",
             "Switch \(\.$light) with \(.applicationName)",
         ], shortTitle: "Toggle Light", systemImageName: "lightswitch.on")
+        AppShortcut(intent: ToggleAllLightsShortcutIntent(), phrases: [
+            "Switch all lights with \(.applicationName)",
+            "Toggle all lights in \(.applicationName)",
+            "\(.applicationName) light switch",
+        ], shortTitle: "Light Switch", systemImageName: "lightbulb.fill")
         AppShortcut(intent: LightsOffIfTVOffIntent(), phrases: [
             "Bedtime in \(.applicationName)",
         ], shortTitle: "Lights Off If TV Off", systemImageName: "tv.slash")
+    }
+}
+
+
+/// App-only shortcut for Apple's built-in Control Center Shortcut control.
+/// Keeping this out of the widget extension prevents duplicate App Intents
+/// from being resolved to the extension instead of the app's process.
+struct ToggleAllLightsShortcutIntent: AppIntent {
+    static var title: LocalizedStringResource = "Toggle All Lights"
+    static var description = IntentDescription("Switch all Afterglow lights on or off with one tap.")
+
+    func perform() async throws -> some IntentResult {
+        _ = try await Lights.toggle(nil)
+        return .result()
     }
 }
