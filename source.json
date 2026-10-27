@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.14",
+          "buildVersion": "14",
+          "date": "2026-10-27T02:29:14Z",
+          "localizedDescription": "- Add Lock Screen 1x1 switch using proven Home widget intent (ed28405)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-14/Afterglow-1.0.14-build-14.ipa",
+          "size": 1504987,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.13",
           "buildVersion": "13",
           "date": "2026-10-27T02:24:17Z",
@@ -110,11 +119,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.13",
-      "versionDate": "2026-10-27T02:24:17Z",
-      "versionDescription": "- Publish unsigned comparison IPA to isolate widget extension signing failures (4a67d98)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-13/Afterglow-1.0.13-build-13.ipa",
-      "size": 1505075,
+      "version": "1.0.14",
+      "versionDate": "2026-10-27T02:29:14Z",
+      "versionDescription": "- Add Lock Screen 1x1 switch using proven Home widget intent (ed28405)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-14/Afterglow-1.0.14-build-14.ipa",
+      "size": 1504987,
       "appPermissions": {}
     }
   ],
