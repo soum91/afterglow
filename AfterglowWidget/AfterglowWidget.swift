@@ -5,6 +5,7 @@ import AppIntents
 @main
 struct AfterglowWidgets: WidgetBundle {
     var body: some Widget {
+        AfterglowLockWidget()
         FavouriteLightWidget()
         LightBrightnessControl()
 
