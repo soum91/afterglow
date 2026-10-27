@@ -831,6 +831,7 @@ static void runBarTimers() {
 }
 
 #include "Extras.h"
+#include "Govee.h"
 
 // ---------------------------------------------------------------------------------------------
 // Talking to lights
@@ -946,6 +947,9 @@ static void handleInfo() {
   d["time"] = clockText();
   d["followTV"] = followTV;
   extrasInfo(d);
+#ifdef HAS_GOVEE
+  govee::info(d);
+#endif
   JsonObject b = d["bar"].to<JsonObject>();
   b["claimed"] = barToken.length() > 0;
   b["configured"] = bar.configured;
@@ -1123,6 +1127,10 @@ static void drawStatus() {
       l[3] = "TV: " + tvLabel;
       if (bar.configured) l[4] = "Bar: " + barLabel;
       l[5] = String("Follow TV: ") + (followTV ? "on" : "off");
+#ifdef HAS_GOVEE
+      if (govee::locked && !govee::stale())
+        l[5] = String((float)govee::temp, 1) + "C " + String((int)lroundf(govee::hum)) + "% " + (followTV ? "TV>on" : "TV>off");
+#endif
       if (ruleDueMs) {
         int left = (int)((int32_t)(ruleDueMs - millis()) / 1000);
         l[6] = "Lights off in " + String(max(0, left)) + "s";
@@ -1170,6 +1178,9 @@ static void worker(void *) {
       continue;
     }
 
+#ifdef HAS_GOVEE
+    govee::tick();
+#endif
     if (runExtras()) continue;
     pollTV();
     runTimers();
@@ -1231,6 +1242,9 @@ void setup() {
     parseConfig(cfg, scratch, true);
   }
   loadExtras(cfg);
+#ifdef HAS_GOVEE
+  govee::begin();
+#endif
 
   homeSpan.enableAutoStartAP();
   homeSpan.setSketchVersion(FW_VERSION);
@@ -1283,6 +1297,10 @@ void setup() {
   }
 
   addExtraAccessories(used);
+#ifdef HAS_GOVEE
+  govee::addAccessory(used);
+  new SpanUserCommand('G', "- forget the Govee thermometer and pick again", govee::forget);
+#endif
 
   xTaskCreatePinnedToCore(worker, "afterglow", 20480, nullptr, 1, nullptr, 0);
   Serial.printf("Afterglow Bridge %s with %d lights\n", FW_VERSION, (int)lights.size());
