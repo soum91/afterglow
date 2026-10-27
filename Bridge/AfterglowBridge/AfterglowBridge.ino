@@ -27,8 +27,9 @@
 #include <vector>
 #include <algorithm>
 #include "TuyaLan.h"
+#include "Display.h"
 
-#define FW_VERSION "1.1.0"
+#define FW_VERSION "1.2.0"
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -1083,12 +1084,63 @@ static void startNetworkServices() {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Status screen (boards with a built-in OLED)
+
+static void drawStatus() {
+  if (!oled::present()) return;
+  String l[8];
+  l[0] = " Afterglow " FW_VERSION;
+  wifi_mode_t mode = WiFi.getMode();
+  if (WiFi.status() == WL_CONNECTED) {
+    l[1] = WiFi.localIP().toString();
+    int ok = 0;
+    xSemaphoreTake(stateLock, portMAX_DELAY);
+    for (auto &L : lights) if (L.ok) ok++;
+    xSemaphoreGive(stateLock);
+    if (!token.length()) {
+      l[2] = "Open Afterglow:";
+      l[3] = "Settings >";
+      l[4] = "Apple Home bridge";
+      l[6] = "Home app code:";
+      l[7] = "466-37-726";
+    } else {
+      l[2] = "Lights " + String(ok) + "/" + String(lights.size()) + " ok";
+      l[3] = "TV: " + tvLabel;
+      if (bar.configured) l[4] = "Bar: " + barLabel;
+      l[5] = String("Follow TV: ") + (followTV ? "on" : "off");
+      if (ruleDueMs) {
+        int left = (int)((int32_t)(ruleDueMs - millis()) / 1000);
+        l[6] = "Lights off in " + String(max(0, left)) + "s";
+      } else {
+        l[6] = "Off delay " + String(learnedDelay()) + "s";
+      }
+      l[7] = clockText();
+    }
+  } else if (mode & WIFI_AP) {
+    l[1] = "Wi-Fi setup:";
+    l[2] = "Join network";
+    l[3] = "HomeSpan-Setup";
+    l[4] = "pw: homespan";
+    l[6] = "Then pick your";
+    l[7] = "2.4 GHz Wi-Fi";
+  } else {
+    l[1] = "Connecting Wi-Fi";
+    l[3] = "Wrong Wi-Fi?";
+    l[4] = "Type W in the";
+    l[5] = "flasher console";
+    l[6] = "to set it again";
+  }
+  oled::lines(l);
+}
+
+// ---------------------------------------------------------------------------------------------
 // Worker task: everything that touches the network besides HomeKit itself.
 
 static void worker(void *) {
   size_t next = 0;
-  uint32_t lastNet = 0;
+  uint32_t lastNet = 0, lastDraw = 0;
   for (;;) {
+    if (millis() - lastDraw > 1000) { lastDraw = millis(); drawStatus(); }
     if (millis() - lastNet > 3000) { lastNet = millis(); startNetworkServices(); }
     if (serverUp) server.handleClient();
     if (WiFi.status() != WL_CONNECTED) { vTaskDelay(pdMS_TO_TICKS(200)); continue; }
@@ -1146,6 +1198,7 @@ static void resetBarPairing(const char *) {
 
 void setup() {
   Serial.begin(115200);
+  oled::begin();
   stateLock = xSemaphoreCreateMutex();
   prefs.begin("afterglow", false);
   token = prefs.getString("token", "");
