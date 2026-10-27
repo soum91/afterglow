@@ -68,3 +68,46 @@ struct AfterglowLockView: View {
         }
     }
 }
+
+
+// Interactive 1x1 Lock Screen control that intentionally uses the exact
+// SetLightPowerIntent already proven to work in the Home Screen widget.
+// Kept separate from the read-only status widget to compare iOS host paths.
+struct AfterglowLockSwitchWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "AfterglowLockSwitchV1", provider: AfterglowLockProvider()) { entry in
+            AfterglowLockSwitchView(entry: entry)
+                .containerBackground(for: .widget) { Color.clear }
+        }
+        .configurationDisplayName("Light switch 1x1")
+        .description("Toggle your Afterglow lights directly from the Lock Screen.")
+        .supportedFamilies([.accessoryCircular])
+    }
+}
+
+struct AfterglowLockSwitchView: View {
+    let entry: AfterglowLockEntry
+
+    var body: some View {
+        Group {
+            if entry.lights.isEmpty {
+                Image(systemName: "lightbulb")
+                    .font(.system(size: 20, weight: .semibold))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Button(intent: SetLightPowerIntent(light: .all, on: entry.onCount == 0)) {
+                    VStack(spacing: 1) {
+                        Image(systemName: entry.icon)
+                            .font(.system(size: 20, weight: .semibold))
+                        Text(entry.short)
+                            .font(.system(size: 10, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
