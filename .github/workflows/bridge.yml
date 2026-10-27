@@ -35,13 +35,17 @@ jobs:
       - name: Compile for ESP32, ESP32-S3, ESP32-C3
         run: |
           set -o pipefail
+          # The bridge only listens for Bluetooth broadcasts; drop the other roles to save flash.
+          NIMBLE_FLAGS="-DCONFIG_BT_NIMBLE_ROLE_PERIPHERAL_DISABLED -DCONFIG_BT_NIMBLE_ROLE_BROADCASTER_DISABLED -DCONFIG_BT_NIMBLE_ROLE_CENTRAL_DISABLED"
           mkdir -p dist
           : > build.log
           for chip in esp32 esp32s3 esp32c3; do
             echo "=== $chip ===" | tee -a build.log
             arduino-cli compile \
               --fqbn "esp32:esp32:${chip}:PartitionScheme=min_spiffs" \
-              --build-property "compiler.cpp.extra_flags=-DFW_BUILD=${{ github.run_number }}" \
+              --build-property "compiler.cpp.extra_flags=-DFW_BUILD=${{ github.run_number }} $NIMBLE_FLAGS" \
+              --build-property "compiler.c.extra_flags=$NIMBLE_FLAGS" \
+              --build-property "upload.maximum_size=2031616" \
               --export-binaries --output-dir "build/${chip}" \
               Bridge/AfterglowBridge 2>&1 | tee -a build.log
             cp "build/${chip}/AfterglowBridge.ino.merged.bin" "dist/AfterglowBridge-${chip}-full.bin"
