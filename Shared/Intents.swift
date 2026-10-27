@@ -62,6 +62,11 @@ struct SceneQuery: EntityStringQuery {
 // MARK: - Intents
 
 struct AllLightsOffIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    // The widget extension cannot be launched to run intents on this iOS, so
+    // Shortcuts must only see (and run) the copy inside the app.
+    static let isDiscoverable = false
+    #endif
     static var title: LocalizedStringResource = "Turn All Lights Off"
     static var description = IntentDescription("Turns every light in Afterglow off.")
 
@@ -72,6 +77,11 @@ struct AllLightsOffIntent: AppIntent {
 }
 
 struct AllLightsOnIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    // The widget extension cannot be launched to run intents on this iOS, so
+    // Shortcuts must only see (and run) the copy inside the app.
+    static let isDiscoverable = false
+    #endif
     static var title: LocalizedStringResource = "Turn All Lights On"
     static var description = IntentDescription("Turns every light in Afterglow on.")
 
@@ -82,6 +92,11 @@ struct AllLightsOnIntent: AppIntent {
 }
 
 struct ToggleLightIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    // The widget extension cannot be launched to run intents on this iOS, so
+    // Shortcuts must only see (and run) the copy inside the app.
+    static let isDiscoverable = false
+    #endif
     static var title: LocalizedStringResource = "Toggle Light"
     static var description = IntentDescription("Turns a light, or all lights, on or off.")
 
@@ -100,6 +115,11 @@ struct ToggleLightIntent: AppIntent {
 }
 
 struct SetLightPowerIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    // The widget extension cannot be launched to run intents on this iOS, so
+    // Shortcuts must only see (and run) the copy inside the app.
+    static let isDiscoverable = false
+    #endif
     static var title: LocalizedStringResource = "Set Light Power"
     static var description = IntentDescription("Turns a light, or all lights, on or off.")
 
@@ -121,6 +141,11 @@ struct SetLightPowerIntent: AppIntent {
 }
 
 struct SetBrightnessIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    // The widget extension cannot be launched to run intents on this iOS, so
+    // Shortcuts must only see (and run) the copy inside the app.
+    static let isDiscoverable = false
+    #endif
     static var title: LocalizedStringResource = "Set Light Brightness"
     static var description = IntentDescription("Sets a light, or all lights, to a brightness and turns it on.")
 
@@ -139,6 +164,11 @@ struct SetBrightnessIntent: AppIntent {
 }
 
 struct RunSceneIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    // The widget extension cannot be launched to run intents on this iOS, so
+    // Shortcuts must only see (and run) the copy inside the app.
+    static let isDiscoverable = false
+    #endif
     static var title: LocalizedStringResource = "Run Light Scene"
     static var description = IntentDescription("Runs one of your Afterglow scenes.")
 
@@ -160,6 +190,11 @@ struct RunSceneIntent: AppIntent {
 }
 
 struct GetTVPowerIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    // The widget extension cannot be launched to run intents on this iOS, so
+    // Shortcuts must only see (and run) the copy inside the app.
+    static let isDiscoverable = false
+    #endif
     static var title: LocalizedStringResource = "Is the TV On"
     static var description = IntentDescription("Asks the Sony TV whether it's on. Returns true or false.")
 
@@ -171,6 +206,11 @@ struct GetTVPowerIntent: AppIntent {
 
 /// For Shortcuts automations (time of day, charger, Sleep focus): only acts if the TV is off.
 struct LightsOffIfTVOffIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    // The widget extension cannot be launched to run intents on this iOS, so
+    // Shortcuts must only see (and run) the copy inside the app.
+    static let isDiscoverable = false
+    #endif
     static var title: LocalizedStringResource = "Lights Off If TV Is Off"
     static var description = IntentDescription("Turns all lights off, unless the Sony TV is on. Good for bedtime automations.")
 

@@ -16,6 +16,11 @@ enum LightStep: String, AppEnum {
     @Parameter(title: "Direction", default: .brighter) var direction: LightStep
 }
 struct StepLightIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    // The widget extension cannot be launched to run intents on this iOS, so
+    // Shortcuts must only see (and run) the copy inside the app.
+    static let isDiscoverable = false
+    #endif
     static var title: LocalizedStringResource = "Adjust Light Brightness"
     @Parameter(title: "Light") var light: LightEntity?
     @Parameter(title: "Direction") var direction: LightStep
