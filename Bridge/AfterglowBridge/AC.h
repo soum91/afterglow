@@ -134,6 +134,7 @@ static String urlEncode(const String &s) {
 static String netErr;   // why the last HTTPS call failed, with memory numbers
 
 static int http(const char *method, const String &url, const String &ctype, const String &body, String &out) {
+  workerBeat = millis();   // these calls run on the worker; a slow handshake isn't a hang
   if (ESP.getMaxAllocHeap() < 36000) {
     netErr = "low memory, free " + String(ESP.getFreeHeap() / 1024) + "K, block " + String(ESP.getMaxAllocHeap() / 1024) + "K";
     return -1;
@@ -149,6 +150,7 @@ static int http(const char *method, const String &url, const String &ctype, cons
   if (ctype.length()) h.addHeader("Content-Type", ctype);
   int code = String(method) == "GET" ? h.GET() : h.POST(body);
   out = code > 0 ? h.getString() : "";
+  workerBeat = millis();
   if (code <= 0) {
     char buf[96] = "";
     c.lastError(buf, sizeof(buf));
@@ -390,42 +392,43 @@ static void runAuto(bool userAction) {
 // ---------------------------------------------------------------------------------------------
 // The AC task
 
-static void task(void *) {
-  uint32_t lastPoll = 0;
-  refreshToken = prefs.getString("ac_rt", "");
-  for (;;) {
-    vTaskDelay(pdMS_TO_TICKS(250));
-    if (millis() < 30000UL) continue;   // let HomeKit, the web API and the relay settle first
-    if (otaActive || !cfg.configured || WiFi.status() != WL_CONNECTED || time(nullptr) < 1700000000) continue;
-    Cmd c{"", false};
-    bool have = false;
-    xSemaphoreTake(lock, portMAX_DELAY);
-    if (!cmds.empty()) { c = cmds.front(); cmds.erase(cmds.begin()); have = true; }
-    xSemaphoreGive(lock);
-    if (have) {
-      if (c.props.length()) {
-        // "k=v,k=v"
-        std::vector<std::pair<String, int>> kv;
-        int start = 0;
-        while (start < (int)c.props.length()) {
-          int comma = c.props.indexOf(',', start);
-          if (comma < 0) comma = c.props.length();
-          String part = c.props.substring(start, comma);
-          int eq = part.indexOf('=');
-          if (eq > 0) kv.push_back({part.substring(0, eq), part.substring(eq + 1).toInt()});
-          start = comma + 1;
-        }
-        send(kv);
-        lastPoll = millis() - 50000UL;   // read back shortly
+static uint32_t lastPoll = 0;
+static bool started = false;
+
+// One pass, called from the worker task (no task of its own: saves 24 KB). Never runs while the
+// Bluetooth radio is on, so the TLS handshake gets the memory.
+static void step() {
+  if (!started) { refreshToken = prefs.getString("ac_rt", ""); started = true; }
+  if (millis() < 30000UL || otaActive || safeMode || setupOnly || !cfg.configured || govee::radioOn ||
+      WiFi.status() != WL_CONNECTED || time(nullptr) < 1700000000) return;
+  Cmd c{"", false};
+  bool have = false;
+  xSemaphoreTake(lock, portMAX_DELAY);
+  if (!cmds.empty()) { c = cmds.front(); cmds.erase(cmds.begin()); have = true; }
+  xSemaphoreGive(lock);
+  if (have) {
+    if (c.props.length()) {
+      // "k=v,k=v"
+      std::vector<std::pair<String, int>> kv;
+      int start = 0;
+      while (start < (int)c.props.length()) {
+        int comma = c.props.indexOf(',', start);
+        if (comma < 0) comma = c.props.length();
+        String part = c.props.substring(start, comma);
+        int eq = part.indexOf('=');
+        if (eq > 0) kv.push_back({part.substring(0, eq), part.substring(eq + 1).toInt()});
+        start = comma + 1;
       }
-      if (c.userAuto) runAuto(true);
-      continue;
+      send(kv);
+      lastPoll = millis() - 50000UL;   // read back shortly
     }
-    if (wantPoll || millis() - lastPoll > 60000UL) {
-      wantPoll = false;
-      lastPoll = millis();
-      if (poll()) runAuto(false);
-    }
+    if (c.userAuto) runAuto(true);
+    return;
+  }
+  if (wantPoll || millis() - lastPoll > 60000UL) {
+    wantPoll = false;
+    lastPoll = millis();
+    if (poll()) runAuto(false);
   }
 }
 
@@ -515,8 +518,7 @@ struct Tile : Service::HeaterCooler {
 static void load() {
   lock = xSemaphoreCreateMutex();
   parseCfg(readFile("/equinox.json"), cfg);
-  // A full TLS handshake (mbedtls, RSA) needs far more stack than 12 KB: that overflow crash-looped 1.6.0.
-  if (!safeMode && !setupOnly) xTaskCreatePinnedToCore(task, "ac", 24576, nullptr, 1, nullptr, 0);
+
 }
 
 static void addAccessory(std::vector<uint32_t> &used) {

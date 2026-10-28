@@ -93,7 +93,7 @@ static bool open(const String &b64, String &plain) {
 }
 
 static void onMessage(char *, byte *payload, unsigned int len) {
-  if (len > 8000) return;
+  if (len > 4000) return;
   String s;
   s.reserve(len);
   for (unsigned int i = 0; i < len; i++) s += (char)payload[i];
@@ -127,6 +127,7 @@ static void handle(const String &sealed) {
     h.setConnectTimeout(3000);
     h.setTimeout(9000);
     int code = -1;
+    if (path.startsWith("/api/info")) path += path.indexOf('?') < 0 ? "?lite=1" : "&lite=1";   // no logs over the relay
     if (h.begin(c, "http://" + WiFi.localIP().toString() + ":" + String(API_PORT) + path)) {
       for (JsonPair kv : d["h"].as<JsonObject>()) h.addHeader(kv.key().c_str(), kv.value().as<String>());
       if (method == "POST") { h.addHeader("Content-Type", "application/json"); code = h.POST(body); }
@@ -144,35 +145,34 @@ static void handle(const String &sealed) {
   served++;
 }
 
-static void task(void *) {
-  for (;;) {
-    vTaskDelay(pdMS_TO_TICKS(30));
-    if (!on || otaActive || WiFi.status() != WL_CONNECTED) {
-      if (mq.connected()) mq.disconnect();
-      connected = false;
-      continue;
-    }
-    if (!mq.connected()) {
-      connected = false;
-      if (millis() - lastTry < (lastTry ? 15000UL : 0UL)) continue;
-      lastTry = millis();
-      String cid = "ks-" + id + "-" + String(esp_random() & 0xffff, HEX);
-      if (mq.connect(cid.c_str())) {
-        mq.subscribe(tReq.c_str());
-        connected = true;
-        lastError = "";
-      } else {
-        lastError = "broker state " + String(mq.state());
-      }
-      continue;
-    }
-    mq.loop();
-    String job;
-    xSemaphoreTake(qlock, portMAX_DELAY);
-    if (!inbox.empty()) { job = inbox.front(); inbox.erase(inbox.begin()); }
-    xSemaphoreGive(qlock);
-    if (job.length()) handle(job);
+// One pass, called from the Arduino loop (no task of its own: saves 10 KB of stack).
+static void poll() {
+  if (!on || otaActive || safeMode || setupOnly || WiFi.status() != WL_CONNECTED || millis() < 20000UL) {
+    if (mq.connected()) mq.disconnect();
+    connected = false;
+    return;
   }
+  if (!mq.connected()) {
+    connected = false;
+    if (lastTry && millis() - lastTry < 30000UL) return;
+    lastTry = millis();
+    if (ESP.getMaxAllocHeap() < 12000) { lastError = "low memory"; return; }
+    String cid = "ks-" + id + "-" + String(esp_random() & 0xffff, HEX);
+    if (mq.connect(cid.c_str())) {
+      mq.subscribe(tReq.c_str());
+      connected = true;
+      lastError = "";
+    } else {
+      lastError = "broker state " + String(mq.state());
+    }
+    return;
+  }
+  mq.loop();
+  String job;
+  xSemaphoreTake(qlock, portMAX_DELAY);
+  if (!inbox.empty()) { job = inbox.front(); inbox.erase(inbox.begin()); }
+  xSemaphoreGive(qlock);
+  if (job.length()) handle(job);
 }
 
 static void begin() {
@@ -185,11 +185,9 @@ static void begin() {
   topics();
   mq.setServer(BROKER, BROKER_PORT);
   mq.setCallback(onMessage);
-  mq.setBufferSize(8192);
+  mq.setBufferSize(5120);
   mq.setKeepAlive(45);
-  mq.setSocketTimeout(8);
-  if (safeMode || setupOnly) return;
-  xTaskCreatePinnedToCore(task, "relay", 10240, nullptr, 1, nullptr, 0);
+  mq.setSocketTimeout(4);
 }
 
 // GET: the relay details for a paired app (only over the LAN, it's the key). POST {"on":bool} / {"rotate":true}.

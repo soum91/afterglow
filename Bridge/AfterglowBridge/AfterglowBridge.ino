@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.7.0"
+#define FW_VERSION "1.7.1"
 #include <esp_system.h>
 #include <nvs.h>
 // Crash-loop guard: after two crash restarts in a row the bridge boots without the AC cloud client and the
@@ -40,6 +40,7 @@ static const char *bootReason = "power on";
 // No Wi-Fi saved yet: boot lean (no Bluetooth, no AC client, no relay) so the setup hotspot has the
 // radio and the memory to itself. Everything starts normally on the restart after Wi-Fi is set.
 static bool setupOnly = false;
+static volatile uint32_t workerBeat = 0;   // the worker's heartbeat (see worker())
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -851,9 +852,7 @@ static void stopBluetoothForOta();
 #include "Extras.h"
 #include "Govee.h"
 static void stopBluetoothForOta() {
-#ifdef HAS_GOVEE
-  NimBLEDevice::getScan()->stop();
-#endif
+  govee::radioStop();
 }
 #include "AC.h"
 namespace provision { static String status; }   // Wi-Fi setup progress, drawn by Screen.h, set by Provision.h
@@ -965,8 +964,11 @@ static void handleInfo() {
     if (L.known) { o["on"] = L.on; o["bri"] = L.pct; }
     o["ok"] = L.ok;
   }
-  JsonArray ev = d["events"].to<JsonArray>();
-  for (auto &e : events) ev.add(e);
+  bool lite = server.hasArg("lite");
+  if (!lite) {
+    JsonArray ev = d["events"].to<JsonArray>();
+    for (auto &e : events) ev.add(e);
+  }
   xSemaphoreGive(stateLock);
   d["tv"]["state"] = tvLabel;
   d["tv"]["host"] = tvHost;
@@ -982,6 +984,9 @@ static void handleInfo() {
   d["boot"]["crashes"] = crashCount;
   d["boot"]["safeMode"] = safeMode;
   d["boot"]["minHeap"] = ESP.getMinFreeHeap();
+#ifdef HAS_GOVEE
+  d["boot"]["bluetooth"] = (bool)govee::radioOn;
+#endif
   if (safeMode && d["ac"].is<JsonObject>()) d["ac"]["error"] = "paused: bridge was crash-looping (safe mode)";
   relay::info(d);
 #ifdef HAS_GOVEE
@@ -992,10 +997,12 @@ static void handleInfo() {
   b["configured"] = bar.configured;
   b["state"] = barLabel;
   b["follow"] = barFollow;
-  JsonArray be = b["events"].to<JsonArray>();
-  xSemaphoreTake(stateLock, portMAX_DELAY);
-  for (auto &e : barEvents) be.add(e);
-  xSemaphoreGive(stateLock);
+  if (!lite) {
+    JsonArray be = b["events"].to<JsonArray>();
+    xSemaphoreTake(stateLock, portMAX_DELAY);
+    for (auto &e : barEvents) be.add(e);
+    xSemaphoreGive(stateLock);
+  }
   String out;
   serializeJson(d, out);
   server.send(200, "application/json", out);
@@ -1152,8 +1159,6 @@ static void startNetworkServices() {
 
 // Watchdog for the worker: if it stops looping (a stuck socket, a hung request) the web API and the
 // automations stop too, so the bridge restarts itself. Firmware uploads are allowed to take longer.
-static volatile uint32_t workerBeat = 0;
-
 static void worker(void *) {
   size_t next = 0;
   uint32_t lastNet = 0, lastDraw = 0;
@@ -1177,6 +1182,7 @@ static void worker(void *) {
 #ifdef HAS_GOVEE
     govee::tick();
 #endif
+    ac::step();
     if (runExtras()) continue;
     pollTV();
     runTimers();
@@ -1321,7 +1327,7 @@ void setup() {
   new SpanUserCommand('G', "- forget the Govee thermometer and pick again", govee::forget);
 #endif
 
-  xTaskCreatePinnedToCore(worker, "afterglow", 20480, nullptr, 1, nullptr, 0);
+  xTaskCreatePinnedToCore(worker, "afterglow", 24576, nullptr, 1, nullptr, 0);   // room for the AC's TLS
   Serial.printf("Keystone Bridge %s with %d lights\n", FW_VERSION, (int)lights.size());
 }
 
@@ -1334,6 +1340,7 @@ void loop() {
     ESP.restart();
   }
   screen::runPending();
+  relay::poll();
   static bool stable = false;
   if (!stable && millis() > 180000UL) { stable = true; if (crashCount) prefs.putInt("crashes", 0); }
 }

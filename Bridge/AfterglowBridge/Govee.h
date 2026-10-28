@@ -145,6 +145,30 @@ struct Battery : Service::BatteryService {
   }
 };
 
+// Bluetooth costs ~50 KB of RAM while on. Once the sensor is picked, listen in 25 s bursts every
+// 2.5 minutes and switch the radio off in between, so Wi-Fi, HomeKit and the AC's TLS have room.
+static volatile bool radioOn = false;
+static uint32_t scanUntil = 0, nextScan = 0;
+
+static void radioStart() {
+  NimBLEDevice::init("");
+  NimBLEScan *scan = NimBLEDevice::getScan();
+  scan->setScanCallbacks(&callbacks, true);
+  scan->setActiveScan(true);
+  scan->setInterval(160);
+  scan->setWindow(60);
+  scan->setMaxResults(0);
+  scan->start(0, false, true);
+  radioOn = true;
+}
+
+static void radioStop() {
+  if (!radioOn) return;
+  NimBLEDevice::getScan()->stop();
+  NimBLEDevice::deinit(true);
+  radioOn = false;
+}
+
 static void begin() {
   bootMs = millis();
   String a = prefs.getString("gv_addr", ""), n = prefs.getString("gv_name", "");
@@ -153,14 +177,7 @@ static void begin() {
     strlcpy(lockedName, n.c_str(), sizeof(lockedName));
     locked = true;
   }
-  NimBLEDevice::init("");
-  NimBLEScan *scan = NimBLEDevice::getScan();
-  scan->setScanCallbacks(&callbacks, true);
-  scan->setActiveScan(true);
-  scan->setInterval(160);   // leave the radio to Wi-Fi most of the time
-  scan->setWindow(60);
-  scan->setMaxResults(0);
-  scan->start(0, false, true);
+  if (!locked) radioStart();   // picking: listen continuously for 30 s
 }
 
 static void addAccessory(std::vector<uint32_t> &used) {
@@ -180,7 +197,17 @@ static void addAccessory(std::vector<uint32_t> &used) {
 
 // From the worker: finish the first-boot pick.
 static void tick() {
-  if (locked || millis() - bootMs < GOVEE_PICK_MS || bestAddr[0] == 0) return;
+  if (otaActive) { radioStop(); return; }
+  if (locked) {
+    if (radioOn) {
+      if ((int32_t)(millis() - scanUntil) >= 0) { radioStop(); nextScan = millis() + 150000UL; }
+    } else if (millis() > 45000UL && (int32_t)(millis() - nextScan) >= 0 && ESP.getMaxAllocHeap() > 30000) {
+      radioStart();
+      scanUntil = millis() + 25000UL;
+    }
+    return;
+  }
+  if (millis() - bootMs < GOVEE_PICK_MS || bestAddr[0] == 0) return;
   portENTER_CRITICAL(&mux);
   String a = bestAddr, n = bestName;
   portEXIT_CRITICAL(&mux);
@@ -209,5 +236,10 @@ static void info(JsonDocument &d) {
   }
 }
 
+}  // namespace govee
+#else
+namespace govee {   // no Bluetooth on this chip
+static const bool radioOn = false;
+static void radioStop() {}
 }  // namespace govee
 #endif
