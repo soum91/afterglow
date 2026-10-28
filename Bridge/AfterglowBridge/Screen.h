@@ -24,6 +24,7 @@ struct Cfg {
 };
 static Cfg cfg;
 static uint32_t identifyUntil = 0;
+static String bridgeName;
 
 static void apply() {
   if (!oled::present()) return;
@@ -278,9 +279,21 @@ static int pageIdx = 0;
 static uint32_t pageSince = 0;
 static bool dimmed = false, blank = false;
 
+// The BOOT button (GPIO0 on ESP32/S3, GPIO9 on C3) wakes the screen for 30 s, even when it's set to off.
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+static const int WAKE_PIN = 9;
+#else
+static const int WAKE_PIN = 0;
+#endif
+static uint32_t wakeUntil = 0;
+static bool wakeInit = false;
+
 static void draw() {
   if (!oled::present()) return;
-  bool ident = identifyUntil && (int32_t)(identifyUntil - millis()) > 0;
+  if (!wakeInit) { pinMode(WAKE_PIN, INPUT_PULLUP); wakeInit = true; wakeUntil = 60000; }   // on for the first minute after boot
+  if (digitalRead(WAKE_PIN) == LOW) wakeUntil = millis() + 30000;
+  bool woke = (int32_t)(wakeUntil - millis()) > 0;
+  bool ident = (identifyUntil && (int32_t)(identifyUntil - millis()) > 0) || woke;
   bool countdown = ruleDueMs != 0;
   bool night = isNight() && !ident;
   bool off = (!cfg.on || (night && cfg.nightMode == 0)) && !ident && !(countdown && cfg.countdownWakes);
@@ -294,7 +307,14 @@ static void draw() {
 
   G().clearBuffer();
   wifi_mode_t mode = WiFi.getMode();
-  if (ident) {
+  if (woke && !(identifyUntil && (int32_t)(identifyUntil - millis()) > 0)) {
+    // Woken by the button or just booted: who and where it is.
+    statusBar(bridgeName);
+    String l2 = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : ((mode & WIFI_AP) ? "Setup: HomeSpan-Setup" : "Connecting to Wi-Fi");
+    String l3 = String("Firmware ") + FW_VERSION;
+    String l4 = cfg.on ? "" : "Screen is set to off";
+    bodyLines(l2.c_str(), l3.c_str(), l4.length() ? l4.c_str() : nullptr, nullptr);
+  } else if (ident) {
     G().setFont(u8g2_font_helvB12_tr);
     centered("Hello!", 12);
     G().setFont(u8g2_font_6x10_tr);
@@ -338,7 +358,6 @@ static void draw() {
 // Keystone API. Keystone pairs like Exhale/Redshift (app=keystone) and can manage the bridge.
 
 static volatile int pendingAction = 0;   // run on HomeSpan's core: 1 restart, 2 forget Wi-Fi
-static String bridgeName;
 
 static bool adminOK() {
   String k = devToken("keystone");
