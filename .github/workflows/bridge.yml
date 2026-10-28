@@ -28,7 +28,7 @@ jobs:
           arduino-cli core update-index --additional-urls "$ESP_URL"
           arduino-cli core install esp32:esp32 --additional-urls "$ESP_URL"
           arduino-cli lib update-index
-          arduino-cli lib install "HomeSpan" "ArduinoJson" "U8g2" "NimBLE-Arduino@2.5.1"
+          arduino-cli lib install "HomeSpan" "ArduinoJson" "U8g2" "NimBLE-Arduino@2.5.1" "PubSubClient"
           arduino-cli core list
           arduino-cli lib list
 

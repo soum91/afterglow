@@ -468,6 +468,7 @@ static void info(JsonDocument &d) {
   d["rssi"] = WiFi.RSSI();
   d["ssid"] = WiFi.SSID();
   d["heap"] = ESP.getFreeHeap();
+  d["heapBlock"] = ESP.getMaxAllocHeap();
   d["keystone"] = devToken("keystone").length() > 0;
   d["barFollow"] = barFollow;
   if (ruleDueMs) d["countdown"] = max(0, (int)((int32_t)(ruleDueMs - millis()) / 1000));

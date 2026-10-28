@@ -131,10 +131,12 @@ static String urlEncode(const String &s) {
   return o;
 }
 
+static String netErr;   // why the last HTTPS call failed, with memory numbers
+
 static int http(const char *method, const String &url, const String &ctype, const String &body, String &out) {
   WiFiClientSecure c;
   c.setInsecure();
-  c.setTimeout(15);
+  c.setHandshakeTimeout(20);   // seconds (setTimeout is milliseconds on this core: 15 there broke every handshake)
   HTTPClient h;
   h.setConnectTimeout(8000);
   h.setTimeout(15000);
@@ -143,6 +145,12 @@ static int http(const char *method, const String &url, const String &ctype, cons
   if (ctype.length()) h.addHeader("Content-Type", ctype);
   int code = String(method) == "GET" ? h.GET() : h.POST(body);
   out = code > 0 ? h.getString() : "";
+  if (code <= 0) {
+    char buf[96] = "";
+    c.lastError(buf, sizeof(buf));
+    netErr = String(buf[0] ? buf : HTTPClient::errorToString(code).c_str()) + ", free " + String(ESP.getFreeHeap() / 1024) +
+             "K, block " + String(ESP.getMaxAllocHeap() / 1024) + "K";
+  }
   h.end();
   return code;
 }
@@ -183,7 +191,7 @@ static bool tokenRequest(const String &extra, String &err) {
   String out;
   int code = http("POST", "https://oauth.hijuconn.com/oauth/token", "application/x-www-form-urlencoded", body, out);
   JsonDocument d;
-  if (code != 200 || deserializeJson(d, out) || !d["access_token"].is<const char *>()) { err = "token HTTP " + String(code); return false; }
+  if (code != 200 || deserializeJson(d, out) || !d["access_token"].is<const char *>()) { err = "token HTTP " + String(code) + (code <= 0 ? " (" + netErr + ")" : ""); return false; }
   accessToken = d["access_token"].as<String>();
   if (d["refresh_token"].is<const char *>()) { refreshToken = d["refresh_token"].as<String>(); prefs.putString("ac_rt", refreshToken); }
   long exp = d["expires_in"] | 3600L;
@@ -198,14 +206,14 @@ static bool fullLogin(String &err) {
   JsonDocument f;
   f["errorCode"] = true; f["errorDetails"] = true; f["UID"] = true; f["sessionInfo"]["cookieValue"] = true;
   JsonDocument d;
-  if (code != 200 || deserializeJson(d, out, DeserializationOption::Filter(f))) { err = "login HTTP " + String(code); return false; }
+  if (code != 200 || deserializeJson(d, out, DeserializationOption::Filter(f))) { err = "login HTTP " + String(code) + (code <= 0 ? " (" + netErr + ")" : ""); return false; }
   int ec = d["errorCode"] | 0;
   if (ec) { err = ec == 206001 ? "accept ConnectLife's new terms in its app" : String("login: ") + (d["errorDetails"] | "wrong email or password"); return false; }
   String uid = d["UID"] | "", cookie = d["sessionInfo"]["cookieValue"] | "";
   code = http("POST", "https://accounts.eu1.gigya.com/accounts.getJWT", "application/x-www-form-urlencoded",
               form({{"APIKey", GIGYA_KEY}, {"login_token", cookie}}), out);
   JsonDocument j;
-  if (code != 200 || deserializeJson(j, out) || !j["id_token"].is<const char *>()) { err = "JWT HTTP " + String(code); return false; }
+  if (code != 200 || deserializeJson(j, out) || !j["id_token"].is<const char *>()) { err = "JWT HTTP " + String(code) + (code <= 0 ? " (" + netErr + ")" : ""); return false; }
   JsonDocument a;
   a["client_id"] = CLIENT_ID; a["redirect_uri"] = REDIRECT; a["idToken"] = j["id_token"].as<String>();
   a["response_type"] = "code"; a["thirdType"] = "CDC"; a["thirdClientId"] = uid;
@@ -213,7 +221,7 @@ static bool fullLogin(String &err) {
   serializeJson(a, ab);
   code = http("POST", "https://oauth.hijuconn.com/oauth/authorize", "application/json", ab, out);
   JsonDocument r;
-  if (code != 200 || deserializeJson(r, out) || !r["code"].is<const char *>()) { err = "authorize HTTP " + String(code); return false; }
+  if (code != 200 || deserializeJson(r, out) || !r["code"].is<const char *>()) { err = "authorize HTTP " + String(code) + (code <= 0 ? " (" + netErr + ")" : ""); return false; }
   return tokenRequest(form({{"grant_type", "authorization_code"}, {"code", r["code"].as<String>()}}), err);
 }
 
@@ -259,7 +267,7 @@ static bool gateway(bool list, const String &props, String &out, String &err, bo
     b += ",\"sign\":\"" + sign + "\"}";
     code = http("POST", String(GATEWAY) + "/device/pu/property/set", "application/json", b, out);
   }
-  if (code != 200) { err = "gateway HTTP " + String(code); return false; }
+  if (code != 200) { err = "gateway HTTP " + String(code) + (code <= 0 ? " (" + netErr + ")" : ""); return false; }
   int rc = out.indexOf("\"resultCode\"");
   bool ok = rc >= 0 && (out.indexOf("\"resultCode\":0", rc) == rc || out.indexOf("\"resultCode\":\"0\"", rc) == rc);
   if (ok) return true;

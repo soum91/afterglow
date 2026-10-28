@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.5.4"
+#define FW_VERSION "1.6.0"
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -847,6 +847,7 @@ static void stopBluetoothForOta() {
 }
 #include "AC.h"
 #include "Screen.h"
+#include "Relay.h"
 
 // ---------------------------------------------------------------------------------------------
 // Talking to lights
@@ -964,6 +965,7 @@ static void handleInfo() {
   extrasInfo(d);
   screen::info(d);
   ac::info(d);
+  relay::info(d);
 #ifdef HAS_GOVEE
   govee::info(d);
 #endif
@@ -1108,6 +1110,8 @@ static void startNetworkServices() {
     server.on("/api/bar/power", HTTP_POST, handleBarPower);
     registerExtraRoutes();
     screen::registerRoutes();
+    server.on("/api/remote", HTTP_GET, relay::handleApi);
+    server.on("/api/remote", HTTP_POST, relay::handleApi);
     server.onNotFound([]() { server.send(404, "text/plain", "Keystone Bridge"); });
     server.begin();
     serverUp = true;
@@ -1216,6 +1220,7 @@ void setup() {
   }
   loadExtras(cfg);
   ac::load();
+  relay::begin();
 #ifdef HAS_GOVEE
   govee::begin();
 #endif
