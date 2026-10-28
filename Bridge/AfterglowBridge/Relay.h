@@ -188,6 +188,7 @@ static void begin() {
   mq.setBufferSize(8192);
   mq.setKeepAlive(45);
   mq.setSocketTimeout(8);
+  if (safeMode) return;
   xTaskCreatePinnedToCore(task, "relay", 10240, nullptr, 1, nullptr, 0);
 }
 

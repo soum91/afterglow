@@ -29,7 +29,13 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.6.0"
+#define FW_VERSION "1.6.1"
+#include <esp_system.h>
+// Crash-loop guard: after two crash restarts in a row the bridge boots without the AC cloud client and the
+// remote relay, so lights, Home and the web API (and firmware updates) keep working.
+static bool safeMode = false;
+static int crashCount = 0;
+static const char *bootReason = "power on";
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -965,6 +971,10 @@ static void handleInfo() {
   extrasInfo(d);
   screen::info(d);
   ac::info(d);
+  d["boot"]["reason"] = bootReason;
+  d["boot"]["crashes"] = crashCount;
+  d["boot"]["safeMode"] = safeMode;
+  if (safeMode && d["ac"].is<JsonObject>()) d["ac"]["error"] = "paused: bridge was crash-looping (safe mode)";
   relay::info(d);
 #ifdef HAS_GOVEE
   govee::info(d);
@@ -1219,6 +1229,16 @@ void setup() {
     parseConfig(cfg, scratch, true);
   }
   loadExtras(cfg);
+  {
+    esp_reset_reason_t r = esp_reset_reason();
+    bool crashed = r == ESP_RST_PANIC || r == ESP_RST_INT_WDT || r == ESP_RST_TASK_WDT || r == ESP_RST_WDT;
+    bootReason = r == ESP_RST_PANIC ? "crash" : r == ESP_RST_INT_WDT || r == ESP_RST_TASK_WDT || r == ESP_RST_WDT ? "watchdog"
+               : r == ESP_RST_BROWNOUT ? "brownout" : r == ESP_RST_SW ? "restart" : r == ESP_RST_POWERON ? "power on" : "other";
+    crashCount = crashed ? prefs.getInt("crashes", 0) + 1 : 0;
+    prefs.putInt("crashes", crashCount);
+    safeMode = crashCount >= 2;
+    if (safeMode) Serial.println("[afterglow] crash loop: safe mode (no AC client, no relay)");
+  }
   ac::load();
   relay::begin();
 #ifdef HAS_GOVEE
@@ -1297,4 +1317,6 @@ void loop() {
     ESP.restart();
   }
   screen::runPending();
+  static bool stable = false;
+  if (!stable && millis() > 180000UL) { stable = true; if (crashCount) prefs.putInt("crashes", 0); }
 }

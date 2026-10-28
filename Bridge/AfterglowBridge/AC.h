@@ -134,6 +134,10 @@ static String urlEncode(const String &s) {
 static String netErr;   // why the last HTTPS call failed, with memory numbers
 
 static int http(const char *method, const String &url, const String &ctype, const String &body, String &out) {
+  if (ESP.getMaxAllocHeap() < 36000) {
+    netErr = "low memory, free " + String(ESP.getFreeHeap() / 1024) + "K, block " + String(ESP.getMaxAllocHeap() / 1024) + "K";
+    return -1;
+  }
   WiFiClientSecure c;
   c.setInsecure();
   c.setHandshakeTimeout(20);   // seconds (setTimeout is milliseconds on this core: 15 there broke every handshake)
@@ -391,6 +395,7 @@ static void task(void *) {
   refreshToken = prefs.getString("ac_rt", "");
   for (;;) {
     vTaskDelay(pdMS_TO_TICKS(250));
+    if (millis() < 30000UL) continue;   // let HomeKit, the web API and the relay settle first
     if (otaActive || !cfg.configured || WiFi.status() != WL_CONNECTED || time(nullptr) < 1700000000) continue;
     Cmd c{"", false};
     bool have = false;
@@ -510,7 +515,8 @@ struct Tile : Service::HeaterCooler {
 static void load() {
   lock = xSemaphoreCreateMutex();
   parseCfg(readFile("/equinox.json"), cfg);
-  xTaskCreatePinnedToCore(task, "ac", 12288, nullptr, 1, nullptr, 0);
+  // A full TLS handshake (mbedtls, RSA) needs far more stack than 12 KB: that overflow crash-looped 1.6.0.
+  if (!safeMode) xTaskCreatePinnedToCore(task, "ac", 24576, nullptr, 1, nullptr, 0);
 }
 
 static void addAccessory(std::vector<uint32_t> &used) {

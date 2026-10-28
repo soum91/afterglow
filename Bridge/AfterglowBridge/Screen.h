@@ -339,7 +339,7 @@ static void draw() {
     statusBar(bridgeName);
     String l2 = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : ((mode & WIFI_AP) ? "Setup: HomeSpan-Setup" : "Connecting to Wi-Fi");
     String l3 = String("Firmware ") + FW_VERSION;
-    String l4 = cfg.on ? "" : "Screen is set to off";
+    String l4 = safeMode ? "Safe mode (crashed)" : (cfg.on ? "" : "Screen is set to off");
     bodyLines(l2.c_str(), l3.c_str(), l4.length() ? l4.c_str() : nullptr, nullptr);
   } else if (ident) {
     G().setFont(u8g2_font_helvB12_tr);
