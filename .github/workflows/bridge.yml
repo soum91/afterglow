@@ -122,7 +122,22 @@ jobs:
           FW=$(grep -oP '#define FW_VERSION "\K[^"]+' Bridge/AfterglowBridge/AfterglowBridge.ino)
           rm -rf site && mkdir -p site/fw
           cp Bridge/web/index.html site/
-          cp dist/*-full.bin site/fw/
+          cp dist/*-full.bin dist/*-app.bin site/fw/
+          for c in esp32 esp32s3 esp32c3; do mv "site/fw/AfterglowBridge-$c-build-$BUILD-app.bin" "site/fw/AfterglowBridge-$c-app.bin" 2>/dev/null || true; done
+          head -c 8192 /dev/zero | tr '\0' '\377' > site/fw/otadata-blank.bin
+          # Repair: blank boot selector + app only. Wi-Fi, Apple Home and app pairings (NVS, 0x9000) are untouched.
+          cat > site/manifest-keep.json <<JSON
+          {
+            "name": "Keystone Bridge (keep settings)",
+            "version": "$FW (build $BUILD)",
+            "new_install_prompt_erase": false,
+            "builds": [
+              { "chipFamily": "ESP32",    "parts": [{ "path": "fw/otadata-blank.bin", "offset": 57344 }, { "path": "fw/AfterglowBridge-esp32-app.bin",   "offset": 65536 }] },
+              { "chipFamily": "ESP32-S3", "parts": [{ "path": "fw/otadata-blank.bin", "offset": 57344 }, { "path": "fw/AfterglowBridge-esp32s3-app.bin", "offset": 65536 }] },
+              { "chipFamily": "ESP32-C3", "parts": [{ "path": "fw/otadata-blank.bin", "offset": 57344 }, { "path": "fw/AfterglowBridge-esp32c3-app.bin", "offset": 65536 }] }
+            ]
+          }
+          JSON
           cat > site/manifest.json <<JSON
           {
             "name": "Afterglow Bridge",
