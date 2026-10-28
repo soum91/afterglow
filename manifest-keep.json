@@ -1,0 +1,10 @@
+{
+  "name": "Keystone Bridge (keep settings)",
+  "version": "1.9.0 (build 30)",
+  "new_install_prompt_erase": false,
+  "builds": [
+    { "chipFamily": "ESP32",    "parts": [{ "path": "fw/otadata-blank.bin", "offset": 57344 }, { "path": "fw/AfterglowBridge-esp32-app.bin",   "offset": 65536 }] },
+    { "chipFamily": "ESP32-S3", "parts": [{ "path": "fw/otadata-blank.bin", "offset": 57344 }, { "path": "fw/AfterglowBridge-esp32s3-app.bin", "offset": 65536 }] },
+    { "chipFamily": "ESP32-C3", "parts": [{ "path": "fw/otadata-blank.bin", "offset": 57344 }, { "path": "fw/AfterglowBridge-esp32c3-app.bin", "offset": 65536 }] }
+  ]
+}
