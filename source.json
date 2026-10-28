@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.24",
+          "buildVersion": "24",
+          "date": "2026-10-28T05:28:12Z",
+          "localizedDescription": "- Re-pair automatically when the bridge has forgotten Afterglow (b9a6dbb)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-24/Afterglow-1.0.24-build-24.ipa",
+          "size": 1575632,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.23",
           "buildVersion": "23",
           "date": "2026-10-28T05:23:59Z",
@@ -200,11 +209,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.23",
-      "versionDate": "2026-10-28T05:23:59Z",
-      "versionDescription": "- Add Reset Keystone pairing (50081c2)\n- Bridge 1.5.1: steadier Wi-Fi updates (Bluetooth and the AC pause during the upload) (9812a91)\n- Bridge 1.5: the Hisense AC in Apple Home with Smart Auto on the bridge (51a5fc5)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-23/Afterglow-1.0.23-build-23.ipa",
-      "size": 1569271,
+      "version": "1.0.24",
+      "versionDate": "2026-10-28T05:28:12Z",
+      "versionDescription": "- Re-pair automatically when the bridge has forgotten Afterglow (b9a6dbb)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-24/Afterglow-1.0.24-build-24.ipa",
+      "size": 1575632,
       "appPermissions": {}
     }
   ],
