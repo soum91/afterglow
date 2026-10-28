@@ -765,6 +765,9 @@ static void extrasInfo(JsonDocument &d) {
     JsonObject o = rs.add<JsonObject>();
     o["name"] = x.name;
     o["buttons"] = (int)x.buttons.size();
+    o["power"] = x.power.length() > 0;
+    JsonArray bn = o["names"].to<JsonArray>();
+    for (auto &b : x.buttons) bn.add(b.name);
   }
   JsonObject t = d["tvTile"].to<JsonObject>();
   t["inHome"] = tvInHome;

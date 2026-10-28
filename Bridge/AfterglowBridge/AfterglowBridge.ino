@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.6.4"
+#define FW_VERSION "1.7.0"
 #include <esp_system.h>
 #include <nvs.h>
 // Crash-loop guard: after two crash restarts in a row the bridge boots without the AC cloud client and the
@@ -860,6 +860,7 @@ namespace provision { static String status; }   // Wi-Fi setup progress, drawn b
 #include "Screen.h"
 #include "Relay.h"
 #include "Provision.h"
+#include "Control.h"
 
 // ---------------------------------------------------------------------------------------------
 // Talking to lights
@@ -1129,6 +1130,7 @@ static void startNetworkServices() {
     screen::registerRoutes();
     server.on("/api/remote", HTTP_GET, relay::handleApi);
     server.on("/api/remote", HTTP_POST, relay::handleApi);
+    server.on("/api/control", HTTP_POST, control::handle);
     server.onNotFound([]() { server.send(404, "text/plain", "Keystone Bridge"); });
     server.begin();
     serverUp = true;
