@@ -135,7 +135,7 @@ static String netErr;   // why the last HTTPS call failed, with memory numbers
 
 static int http(const char *method, const String &url, const String &ctype, const String &body, String &out) {
   workerBeat = millis();   // these calls run on the worker; a slow handshake isn't a hang
-  if (ESP.getMaxAllocHeap() < 36000) {
+  if (ESP.getMaxAllocHeap() < 30000) {
     netErr = "low memory, free " + String(ESP.getFreeHeap() / 1024) + "K, block " + String(ESP.getMaxAllocHeap() / 1024) + "K";
     return -1;
   }
@@ -397,6 +397,8 @@ static bool started = false;
 
 // One pass, called from the worker task (no task of its own: saves 24 KB). Never runs while the
 // Bluetooth radio is on, so the TLS handshake gets the memory.
+static void netWork(const Cmd &c, bool have);
+
 static void step() {
   if (!started) { refreshToken = prefs.getString("ac_rt", ""); started = true; }
   if (millis() < 30000UL || otaActive || safeMode || setupOnly || !cfg.configured || govee::radioOn ||
@@ -406,6 +408,15 @@ static void step() {
   xSemaphoreTake(lock, portMAX_DELAY);
   if (!cmds.empty()) { c = cmds.front(); cmds.erase(cmds.begin()); have = true; }
   xSemaphoreGive(lock);
+  if (!have && !(wantPoll || millis() - lastPoll > 60000UL)) return;
+  // Clear the decks: ask the relay to let go of its memory, wait (briefly) until it has.
+  acNetBusy = true;
+  for (int i = 0; i < 80 && relayHolding; i++) vTaskDelay(pdMS_TO_TICKS(25));
+  netWork(c, have);
+  acNetBusy = false;
+}
+
+static void netWork(const Cmd &c, bool have) {
   if (have) {
     if (c.props.length()) {
       // "k=v,k=v"
@@ -425,11 +436,9 @@ static void step() {
     if (c.userAuto) runAuto(true);
     return;
   }
-  if (wantPoll || millis() - lastPoll > 60000UL) {
-    wantPoll = false;
-    lastPoll = millis();
-    if (poll()) runAuto(false);
-  }
+  wantPoll = false;
+  lastPoll = millis();
+  if (poll()) runAuto(false);
 }
 
 // ---------------------------------------------------------------------------------------------

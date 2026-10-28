@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.7.1"
+#define FW_VERSION "1.7.2"
 #include <esp_system.h>
 #include <nvs.h>
 // Crash-loop guard: after two crash restarts in a row the bridge boots without the AC cloud client and the
@@ -41,6 +41,10 @@ static const char *bootReason = "power on";
 // radio and the memory to itself. Everything starts normally on the restart after Wi-Fi is set.
 static bool setupOnly = false;
 static volatile uint32_t workerBeat = 0;   // the worker's heartbeat (see worker())
+// The AC's HTTPS calls need ~50 KB at once. While one runs, the remote relay steps aside (drops its
+// connection and its message buffer) so the memory is there.
+static volatile bool acNetBusy = false;
+static volatile bool relayHolding = false;
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures

@@ -146,10 +146,17 @@ static void handle(const String &sealed) {
 }
 
 // One pass, called from the Arduino loop (no task of its own: saves 10 KB of stack).
+static void letGo() {
+  if (mq.connected()) mq.disconnect();
+  net.stop();
+  if (relayHolding) { mq.setBufferSize(16); relayHolding = false; }   // hand the 5 KB buffer back
+  connected = false;
+}
+
 static void poll() {
-  if (!on || otaActive || safeMode || setupOnly || WiFi.status() != WL_CONNECTED || millis() < 20000UL) {
-    if (mq.connected()) mq.disconnect();
-    connected = false;
+  if (!on || otaActive || safeMode || setupOnly || acNetBusy || WiFi.status() != WL_CONNECTED || millis() < 20000UL) {
+    letGo();
+    if (acNetBusy) lastTry = 0;   // reconnect as soon as the AC call is done
     return;
   }
   if (!mq.connected()) {
@@ -158,6 +165,7 @@ static void poll() {
     lastTry = millis();
     if (ESP.getMaxAllocHeap() < 12000) { lastError = "low memory"; return; }
     String cid = "ks-" + id + "-" + String(esp_random() & 0xffff, HEX);
+    if (!relayHolding) { if (!mq.setBufferSize(5120)) { lastError = "low memory"; return; } relayHolding = true; }
     if (mq.connect(cid.c_str())) {
       mq.subscribe(tReq.c_str());
       connected = true;
@@ -185,7 +193,7 @@ static void begin() {
   topics();
   mq.setServer(BROKER, BROKER_PORT);
   mq.setCallback(onMessage);
-  mq.setBufferSize(5120);
+  mq.setBufferSize(16);   // the real buffer is taken when connecting
   mq.setKeepAlive(45);
   mq.setSocketTimeout(4);
 }
