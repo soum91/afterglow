@@ -349,7 +349,7 @@ static void draw() {
     centered(WiFi.localIP().toString(), 52);
     if ((millis() / 400) % 2) G().drawFrame(0, 0, 128, 64);
   } else if (WiFi.status() != WL_CONNECTED && (mode & WIFI_AP)) {
-    statusBar("Wi-Fi setup");
+    statusBar(String("Wi-Fi setup ") + String(ESP.getFreeHeap() / 1024) + "K");
     if (provision::status.length()) {
       String a = provision::status.substring(0, 21), b = provision::status.substring(21, 42), c = provision::status.substring(42, 63);
       bodyLines(a.c_str(), b.c_str(), c.c_str(), nullptr);

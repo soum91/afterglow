@@ -29,13 +29,17 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.6.2"
+#define FW_VERSION "1.6.3"
 #include <esp_system.h>
+#include <nvs.h>
 // Crash-loop guard: after two crash restarts in a row the bridge boots without the AC cloud client and the
 // remote relay, so lights, Home and the web API (and firmware updates) keep working.
 static bool safeMode = false;
 static int crashCount = 0;
 static const char *bootReason = "power on";
+// No Wi-Fi saved yet: boot lean (no Bluetooth, no AC client, no relay) so the setup hotspot has the
+// radio and the memory to itself. Everything starts normally on the restart after Wi-Fi is set.
+static bool setupOnly = false;
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -1241,10 +1245,17 @@ void setup() {
     safeMode = crashCount >= 2;
     if (safeMode) Serial.println("[afterglow] crash loop: safe mode (no AC client, no relay)");
   }
+  {
+    nvs_handle_t h;
+    size_t len = 0;
+    setupOnly = !(nvs_open("WIFI", NVS_READONLY, &h) == ESP_OK && nvs_get_blob(h, "WIFIDATA", NULL, &len) == ESP_OK && len > 0);
+    if (len) nvs_close(h);
+    if (setupOnly) { safeMode = true; Serial.println("[keystone] no Wi-Fi saved: lean setup boot"); }
+  }
   ac::load();
   relay::begin();
 #ifdef HAS_GOVEE
-  govee::begin();
+  if (!setupOnly) govee::begin();
 #endif
 
   homeSpan.enableAutoStartAP();

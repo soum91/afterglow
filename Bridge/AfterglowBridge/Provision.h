@@ -155,13 +155,14 @@ static void improvPoll() {
 
 static void run() {
   active = true;
-  stopBluetoothForOta();
+  if (!setupOnly) stopBluetoothForOta();
   WiFi.disconnect(false, false);
   WiFi.mode(WIFI_AP_STA);
   delay(100);
   scan();
-  WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
   WiFi.softAP(AP_NAME, nullptr, 6, 0, 4);
+  delay(200);
+  WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
   delay(300);
   DNSServer dns;
   dns.start(53, "*", IPAddress(192, 168, 4, 1));
