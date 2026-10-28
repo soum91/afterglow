@@ -134,6 +134,8 @@ struct HomeBridgeView: View {
                 Button("Reset Exhale pairing") { Task { status = (try? await BridgeAPI.resetDevicePairing("exhale")) != nil ? "Exhale can pair again." : "Couldn't reset."; await loadInfo() } }
                     .font(.footnote)
             }
+            Button("Reset Keystone pairing") { Task { status = (try? await BridgeAPI.resetDevicePairing("keystone")) != nil ? "Keystone can pair again." : "Couldn't reset."; await loadInfo() } }
+                .font(.footnote)
             if i.ir?.paired == true {
                 Button("Reset Redshift pairing") { Task { status = (try? await BridgeAPI.resetDevicePairing("redshift")) != nil ? "Redshift can pair again." : "Couldn't reset."; await loadInfo() } }
                     .font(.footnote)
