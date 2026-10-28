@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.5.2"
+#define FW_VERSION "1.5.3"
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -1127,10 +1127,15 @@ static void startNetworkServices() {
 // ---------------------------------------------------------------------------------------------
 // Worker task: everything that touches the network besides HomeKit itself.
 
+// Watchdog for the worker: if it stops looping (a stuck socket, a hung request) the web API and the
+// automations stop too, so the bridge restarts itself. Firmware uploads are allowed to take longer.
+static volatile uint32_t workerBeat = 0;
+
 static void worker(void *) {
   size_t next = 0;
   uint32_t lastNet = 0, lastDraw = 0;
   for (;;) {
+    workerBeat = millis();
     if (millis() - lastDraw > 500) { lastDraw = millis(); screen::draw(); }
     if (millis() - lastNet > 3000) { lastNet = millis(); startNetworkServices(); }
     if (serverUp) server.handleClient();
@@ -1280,5 +1285,11 @@ void setup() {
 
 void loop() {
   homeSpan.poll();
+  uint32_t beat = workerBeat;
+  if (beat && millis() - beat > (otaActive ? 300000UL : 90000UL)) {
+    Serial.println("[afterglow] worker stuck, restarting");
+    delay(100);
+    ESP.restart();
+  }
   screen::runPending();
 }
