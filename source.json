@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.22",
+          "buildVersion": "22",
+          "date": "2026-10-28T04:07:04Z",
+          "localizedDescription": "- Call the bridge Keystone Bridge and point to the Keystone app (a2cdba8)\n- Bridge 1.4.1: called Keystone Bridge by default (599e9b6)\n- Bridge 1.4: redesigned screen, display settings and Keystone controls (950793e)\n- Bridge guide: everything that shows up in Apple Home (24fd4f2)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-22/Afterglow-1.0.22-build-22.ipa",
+          "size": 1569306,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.21",
           "buildVersion": "21",
           "date": "2026-10-27T22:51:43Z",
@@ -182,11 +191,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.21",
-      "versionDate": "2026-10-27T22:51:43Z",
-      "versionDescription": "- Bridge: let Afterglow reset Exhale/Redshift pairings (9bc62b9)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-21/Afterglow-1.0.21-build-21.ipa",
-      "size": 1569353,
+      "version": "1.0.22",
+      "versionDate": "2026-10-28T04:07:04Z",
+      "versionDescription": "- Call the bridge Keystone Bridge and point to the Keystone app (a2cdba8)\n- Bridge 1.4.1: called Keystone Bridge by default (599e9b6)\n- Bridge 1.4: redesigned screen, display settings and Keystone controls (950793e)\n- Bridge guide: everything that shows up in Apple Home (24fd4f2)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-22/Afterglow-1.0.22-build-22.ipa",
+      "size": 1569306,
       "appPermissions": {}
     }
   ],
