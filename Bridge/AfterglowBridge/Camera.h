@@ -22,9 +22,9 @@ struct Cfg {
   bool ruleOn = false, window = false;
   int from = 0, to = 0, offAfter = 10;   // minutes; offAfter 0 leaves the lights on
   std::vector<String> lights;
-  // Alerts: Telegram, optionally checked by Claude first
+  // Alerts: ntfy push (the ntfy iOS app shows the snapshot), optionally checked by Claude first
   bool alertOn = false, alertAll = false, aiOnly = false;
-  String tg, chat, aiKey, aiModel = "claude-haiku-5-5";
+  String topic, server = "https://ntfy.sh", aiKey, aiModel = "claude-haiku-5-5";
   int cooldown = 60;   // seconds between unflagged alerts
 };
 static Cfg cfg;
@@ -47,8 +47,8 @@ static bool parseCfg(const String &json, Cfg &out) {
     c.from = r["from"] | 0; c.to = r["to"] | 0; c.offAfter = r["offAfter"] | 10;
     for (JsonVariant v : r["lights"].as<JsonArray>()) c.lights.push_back(v.as<String>());
     JsonObject a = o["alerts"];
-    c.tg = a["tg"] | ""; c.chat = a["chat"] | "";
-    c.alertOn = (a["enabled"] | false) && c.tg.length() && c.chat.length();
+    c.topic = a["topic"] | ""; c.server = a["server"] | "https://ntfy.sh";
+    c.alertOn = (a["enabled"] | false) && c.topic.length();
     c.alertAll = a["all"] | false; c.cooldown = a["cooldown"] | 60;
     c.aiKey = a["aiKey"] | ""; c.aiModel = a["aiModel"] | "claude-haiku-5-5"; c.aiOnly = (a["aiOnly"] | false) && c.aiKey.length();
     c.configured = c.serial.length() && (c.token.length() || (c.email.length() && c.pass.length()));
@@ -223,18 +223,24 @@ static String askAI(const String &img) {
   return out;
 }
 
-static bool telegram(const String &img, const String &text) {
+// ntfy JSON publish: title, text, the snapshot as an attachment (previewed in the iOS banner), and a
+// tap action that opens Nightjar on the event.
+static bool ntfy(const String &title, const String &text, const String &img, const String &trace, bool urgent) {
   JsonDocument b, f, d;
-  b["chat_id"] = cfg.chat;
-  if (img.length()) { b["photo"] = img; b["caption"] = text; } else b["text"] = text;
+  b["topic"] = cfg.topic;
+  b["title"] = title;
+  b["message"] = text.length() ? text : cfg.name;
+  if (img.length()) b["attach"] = img;
+  b["click"] = "nightjar://event/" + trace;
+  b["priority"] = urgent ? 5 : 4;
+  b["tags"][0] = urgent ? "rotating_light" : "bust_in_silhouette";
   String body;
   serializeJson(b, body);
-  f["ok"] = true;
-  f["description"] = true;
-  String api = "https://api.telegram.org/bot" + cfg.tg + (img.length() ? "/sendPhoto" : "/sendMessage");
-  int code = post(api, body, f, d);
-  if (code == 200 && (d["ok"] | false)) return true;
-  alertErr = "Telegram: " + String(d["description"] | ("HTTP " + String(code)).c_str());
+  f["id"] = true;
+  f["error"] = true;
+  int code = post(cfg.server, body, f, d);
+  if (code == 200 && d["id"].is<const char *>()) return true;
+  alertErr = "ntfy: " + String(d["error"] | ("HTTP " + String(code)).c_str());
   return false;
 }
 
@@ -261,9 +267,8 @@ static void runAlerts() {
   if (!flagged && lastAlertMs && millis() - lastAlertMs < (uint32_t)cfg.cooldown * 1000UL) return;
   String head = tamper ? "Someone's messing with the camera" : close ? "Person right at the camera"
               : food ? "Person at the food" : a.person ? "Person" : "Motion";
-  String text = String(flagged ? "\u26a0\ufe0f " : "") + head + " \u00b7 " + cfg.name + " \u00b7 " + clockText();
-  if (what.length()) text += "\n" + what;
-  if (telegram(a.img, text) || (a.img.length() && telegram("", text))) {
+  String title = head + " \u00b7 " + cfg.name + " \u00b7 " + clockText();
+  if (ntfy(title, what, a.img, a.trace, flagged)) {
     lastAlertMs = millis();
     alertsSent++;
     alertErr = "";
