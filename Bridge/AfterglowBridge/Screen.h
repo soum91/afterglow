@@ -337,7 +337,7 @@ static void draw() {
   } else if (woke && !(identifyUntil && (int32_t)(identifyUntil - millis()) > 0)) {
     // Woken by the button or just booted: who and where it is.
     statusBar(bridgeName);
-    String l2 = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : ((mode & WIFI_AP) ? "Setup: HomeSpan-Setup" : "Connecting to Wi-Fi");
+    String l2 = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : ((mode & WIFI_AP) ? "Setup: Keystone-Setup" : "Connecting to Wi-Fi");
     String l3 = String("Firmware ") + FW_VERSION;
     String l4 = safeMode ? "Safe mode (crashed)" : (cfg.on ? "" : "Screen is set to off");
     bodyLines(l2.c_str(), l3.c_str(), l4.length() ? l4.c_str() : nullptr, nullptr);
@@ -350,7 +350,12 @@ static void draw() {
     if ((millis() / 400) % 2) G().drawFrame(0, 0, 128, 64);
   } else if (WiFi.status() != WL_CONNECTED && (mode & WIFI_AP)) {
     statusBar("Wi-Fi setup");
-    bodyLines("Join HomeSpan-Setup", "password: homespan", "then pick your", "2.4 GHz Wi-Fi");
+    if (provision::status.length()) {
+      String a = provision::status.substring(0, 21), b = provision::status.substring(21, 42), c = provision::status.substring(42, 63);
+      bodyLines(a.c_str(), b.c_str(), c.c_str(), nullptr);
+    } else {
+      bodyLines("Join Keystone-Setup", "(no password), or on", "a computer go to", "soum91.github.io/...");
+    }
   } else if (WiFi.status() != WL_CONNECTED) {
     statusBar("Connecting...");
     bodyLines("Looking for Wi-Fi.", "Wrong network? Reset", "Wi-Fi in Keystone or", "type W in console");

@@ -34,7 +34,7 @@ Boards with a built-in 0.96" OLED (like the ideaspark ESP32) show setup steps, t
 
 ## 2. Wi-Fi
 
-Join **HomeSpan-Setup** (password `homespan`), enter your Wi-Fi and an 8-digit setup code (or keep `466-37-726`).
+Join the open network **Keystone-Setup** (the setup page pops up), or use the web installer's **Connect to Wi-Fi** over USB. Pick your 2.4 GHz Wi-Fi; the Apple Home code is `466-37-726` unless you set one.
 
 ## 3. Pair with Afterglow
 

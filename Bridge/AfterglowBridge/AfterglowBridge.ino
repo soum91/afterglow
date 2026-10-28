@@ -9,7 +9,7 @@
   Libraries: HomeSpan 2.x, ArduinoJson 7.x. Board core: arduino-esp32 3.x. Partition: Minimal SPIFFS.
 
   First boot:
-    1. Join Wi-Fi "HomeSpan-Setup" (password: homespan), enter your 2.4 GHz Wi-Fi and a setup code.
+    1. Join the open Wi-Fi "Keystone-Setup" (the page pops up), or use the web installer's Connect to Wi-Fi.
     2. In Afterglow: Settings > Apple Home bridge. It finds the bridge and sends your lights.
     3. Home app > + > Add Accessory > More options > "Keystone Bridge".
   Serial (115200): @i shows status, @R forgets the paired phone so another can pair, @B does the same for Subwave.
@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.6.1"
+#define FW_VERSION "1.6.2"
 #include <esp_system.h>
 // Crash-loop guard: after two crash restarts in a row the bridge boots without the AC cloud client and the
 // remote relay, so lights, Home and the web API (and firmware updates) keep working.
@@ -852,8 +852,10 @@ static void stopBluetoothForOta() {
 #endif
 }
 #include "AC.h"
+namespace provision { static String status; }   // Wi-Fi setup progress, drawn by Screen.h, set by Provision.h
 #include "Screen.h"
 #include "Relay.h"
+#include "Provision.h"
 
 // ---------------------------------------------------------------------------------------------
 // Talking to lights
@@ -1246,6 +1248,7 @@ void setup() {
 #endif
 
   homeSpan.enableAutoStartAP();
+  homeSpan.setApFunction(provision::run);
   homeSpan.setSketchVersion(FW_VERSION);
   screen::bridgeName = prefs.getString("bridgeName", "Keystone Bridge");
   screen::load();
