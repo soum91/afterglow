@@ -15,7 +15,7 @@ An iOS app for Tuya / Smart Life lights that talks to them straight over your Wi
 
 ## Apple Home and the TV
 
-An iPhone app can't add accessories to Apple Home, and Home automations need a HomePod or Apple TV. The [bridge](Bridge/README.md) fixes both: a ~$10 ESP32 that shows every light in Home (on, brightness, white temperature, colour) and controls them locally, and runs the TV automations itself, no hub, no phone:
+An iPhone app can't add accessories to Apple Home, and Home automations need a HomePod or Apple TV. The [Keystone Bridge](https://github.com/soum91/keystone/tree/main/Bridge) fixes both: a ~$10 ESP32 that shows every light in Home (on, brightness, white temperature, colour) and controls them locally, and runs the TV automations itself, no hub, no phone:
 
 - **TV turns off** → run a scene (default: all lights off), only at night if you want, after a delay that it **learns from you**: it notices how long you usually wait after the TV goes off before switching the lights off yourself (from Home, Afterglow, Smart Life or the wall) and uses your typical gap. Turn the lights back on right after it fires and it learns to wait longer.
 - **TV turns on** → optional scene (e.g. Movie).
@@ -33,7 +33,7 @@ The TV is read with Sony's Bravia REST API (`getPowerStatus`). On the TV: Settin
 
 ## Build
 
-Every push to `main` builds `Afterglow-<version>-build-<N>.ipa` on GitHub Actions and publishes it as release `build-N` with a changelog since the previous build. The app and widget are ad-hoc signed with the `group.com.soum91.afterglow` App Group. Firmware changes build `AfterglowBridge-<chip>-build-<N>-*.bin` as release `firmware-build-N` (and `firmware-latest`).
+Every push to `main` builds `Afterglow-<version>-build-<N>.ipa` on GitHub Actions and publishes it as release `build-N` with a changelog since the previous build. The app and widget are ad-hoc signed with the `group.com.soum91.afterglow` App Group. Bridge firmware now lives in [soum91/keystone](https://github.com/soum91/keystone/tree/main/Bridge); Afterglow updates the bridge from there.
 
 Local: `brew install xcodegen && xcodegen generate`, open `Afterglow.xcodeproj`.
 

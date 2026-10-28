@@ -10,9 +10,9 @@ struct HomeBridgeView: View {
     @State private var manualHost = ""
     @State private var latest: BridgeFirmware.Latest?
     @State private var updating: String?
-    private let firmware = URL(string: "https://github.com/soum91/afterglow/releases/tag/firmware-latest")!
-    private let guide = URL(string: "https://github.com/soum91/afterglow/tree/main/Bridge")!
-    private let flasher = URL(string: "https://soum91.github.io/afterglow/")!
+    private let firmware = URL(string: "https://github.com/soum91/keystone/releases/tag/firmware-latest")!
+    private let guide = URL(string: "https://github.com/soum91/keystone/tree/main/Bridge")!
+    private let flasher = URL(string: "https://soum91.github.io/keystone/")!
 
     var body: some View {
         Form {
@@ -92,7 +92,7 @@ struct HomeBridgeView: View {
 
             Section {
                 step(1, "Get an ESP32 board", "Any ESP32, ESP32-S3 or ESP32-C3 dev board with USB. Power it from any USB charger.")
-                step(2, "Flash the firmware", "On a computer, open soum91.github.io/afterglow in Chrome or Edge and tap Connect and install. It picks the right firmware for your board. Phones can't flash.")
+                step(2, "Flash the firmware", "On a computer, open soum91.github.io/keystone in Chrome or Edge and tap Connect and install. It picks the right firmware for your board. Phones can't flash.")
                 step(3, "Join its Wi-Fi", "Join \"HomeSpan-Setup\" (password homespan), enter your 2.4 GHz Wi-Fi and a setup code.")
                 step(4, "Pair it here", "Come back to this screen. Afterglow finds it and sends your lights.")
                 step(5, "Add to Home", "Home app › + › Add Accessory › More options › \"Keystone Bridge\", enter the setup code (default 466-37-726).")
@@ -171,7 +171,7 @@ struct HomeBridgeView: View {
                 if let u = updating { Text(u).font(.footnote).foregroundStyle(.secondary) }
                 Button("Check for updates") { Task { latest = try? await BridgeFirmware.latest(chip: chip) } }
             } else {
-                Text("This firmware is too old to update over Wi-Fi. Flash it once more from a computer (soum91.github.io/afterglow); after that, updates come through here.")
+                Text("This firmware is too old to update over Wi-Fi. Flash it once more from a computer (soum91.github.io/keystone); after that, updates come through here.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         } header: {
