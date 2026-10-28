@@ -85,7 +85,7 @@ enum BridgeAPI {
         req.timeoutInterval = 4
         let (data, _) = try await URLSession.shared.data(for: req)
         let info = try JSONDecoder().decode(BridgeInfo.self, from: data)
-        guard info.app == "afterglow-bridge" else { throw BridgeError.message("That isn't an Afterglow bridge.") }
+        guard info.app == "afterglow-bridge" else { throw BridgeError.message("That isn't a Keystone Bridge.") }
         return info
     }
 

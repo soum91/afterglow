@@ -95,7 +95,7 @@ struct HomeBridgeView: View {
                 step(2, "Flash the firmware", "On a computer, open soum91.github.io/afterglow in Chrome or Edge and tap Connect and install. It picks the right firmware for your board. Phones can't flash.")
                 step(3, "Join its Wi-Fi", "Join \"HomeSpan-Setup\" (password homespan), enter your 2.4 GHz Wi-Fi and a setup code.")
                 step(4, "Pair it here", "Come back to this screen. Afterglow finds it and sends your lights.")
-                step(5, "Add to Home", "Home app › + › Add Accessory › More options › \"Afterglow Bridge\", enter the setup code (default 466-37-726).")
+                step(5, "Add to Home", "Home app › + › Add Accessory › More options › \"Keystone Bridge\", enter the setup code (default 466-37-726).")
             } header: { Text("Setup") }
 
             Section {
