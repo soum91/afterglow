@@ -516,7 +516,7 @@ static void load() {
   lock = xSemaphoreCreateMutex();
   parseCfg(readFile("/equinox.json"), cfg);
   // A full TLS handshake (mbedtls, RSA) needs far more stack than 12 KB: that overflow crash-looped 1.6.0.
-  if (!safeMode) xTaskCreatePinnedToCore(task, "ac", 24576, nullptr, 1, nullptr, 0);
+  if (!safeMode && !setupOnly) xTaskCreatePinnedToCore(task, "ac", 24576, nullptr, 1, nullptr, 0);
 }
 
 static void addAccessory(std::vector<uint32_t> &used) {

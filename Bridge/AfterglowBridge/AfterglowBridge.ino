@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.6.3"
+#define FW_VERSION "1.6.4"
 #include <esp_system.h>
 #include <nvs.h>
 // Crash-loop guard: after two crash restarts in a row the bridge boots without the AC cloud client and the
@@ -980,6 +980,7 @@ static void handleInfo() {
   d["boot"]["reason"] = bootReason;
   d["boot"]["crashes"] = crashCount;
   d["boot"]["safeMode"] = safeMode;
+  d["boot"]["minHeap"] = ESP.getMinFreeHeap();
   if (safeMode && d["ac"].is<JsonObject>()) d["ac"]["error"] = "paused: bridge was crash-looping (safe mode)";
   relay::info(d);
 #ifdef HAS_GOVEE
@@ -1250,7 +1251,7 @@ void setup() {
     size_t len = 0;
     setupOnly = !(nvs_open("WIFI", NVS_READONLY, &h) == ESP_OK && nvs_get_blob(h, "WIFIDATA", NULL, &len) == ESP_OK && len > 0);
     if (len) nvs_close(h);
-    if (setupOnly) { safeMode = true; Serial.println("[keystone] no Wi-Fi saved: lean setup boot"); }
+    if (setupOnly) { Serial.println("[keystone] no Wi-Fi saved: lean setup boot"); }
   }
   ac::load();
   relay::begin();
