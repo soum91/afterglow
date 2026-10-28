@@ -131,13 +131,13 @@ struct HomeBridgeView: View {
                 LabeledContent("IR remotes", value: "send them from Redshift")
             }
             if i.purifier?.paired == true {
-                Button("Reset Exhale pairing") { Task { status = (try? await BridgeAPI.resetDevicePairing("exhale")) != nil ? "Exhale can pair again." : "Couldn't reset."; await loadInfo() } }
+                Button("Reset Exhale pairing") { Task { do { try await BridgeAPI.resetDevicePairing("exhale"); status = "Exhale can pair again." } catch { status = error.localizedDescription }; await loadInfo() } }
                     .font(.footnote)
             }
-            Button("Reset Keystone pairing") { Task { status = (try? await BridgeAPI.resetDevicePairing("keystone")) != nil ? "Keystone can pair again." : "Couldn't reset."; await loadInfo() } }
+            Button("Reset Keystone pairing") { Task { do { try await BridgeAPI.resetDevicePairing("keystone"); status = "Keystone can pair again." } catch { status = error.localizedDescription }; await loadInfo() } }
                 .font(.footnote)
             if i.ir?.paired == true {
-                Button("Reset Redshift pairing") { Task { status = (try? await BridgeAPI.resetDevicePairing("redshift")) != nil ? "Redshift can pair again." : "Couldn't reset."; await loadInfo() } }
+                Button("Reset Redshift pairing") { Task { do { try await BridgeAPI.resetDevicePairing("redshift"); status = "Redshift can pair again." } catch { status = error.localizedDescription }; await loadInfo() } }
                     .font(.footnote)
             }
             if let g = i.govee {
@@ -184,7 +184,7 @@ struct HomeBridgeView: View {
     private func runUpdate(_ l: BridgeFirmware.Latest) async {
         updating = "Starting…"
         do {
-            try await BridgeFirmware.install(l) { msg in Task { @MainActor in updating = msg } }
+            try await BridgeAPI.withRepair { c in try await BridgeFirmware.install(l, cfg: c) { msg in Task { @MainActor in updating = msg } } }
             try? await Task.sleep(nanoseconds: 25_000_000_000)
             await loadInfo()
             updating = (info?.build ?? 0) >= l.build ? "Updated to build \(l.build)." : "Sent. If the version doesn't change, refresh in a minute."

@@ -71,7 +71,34 @@ struct BridgeInfo: Decodable {
 
 enum BridgeError: LocalizedError {
     case message(String)
-    var errorDescription: String? { if case .message(let m) = self { return m }; return nil }
+    case rejected
+    var errorDescription: String? {
+        switch self {
+        case .message(let m): return m
+        case .rejected: return "The bridge forgot Afterglow's pairing and Keystone holds it now. In Keystone › Bridge › Pairings, tap Reset next to Afterglow, then try again here."
+        }
+    }
+}
+
+extension BridgeAPI {
+    /// The bridge forgot this phone (another app cleared Afterglow's slot). If the slot is free, take it again.
+    static func reclaim() async -> Bool {
+        var cfg = BridgeConfig.stored
+        guard cfg.isSet, let t = try? await claim(cfg) else { return false }
+        cfg.token = t
+        BridgeConfig.stored = cfg
+        return true
+    }
+
+    /// Runs `work`, re-pairing once if the bridge says it doesn't know this phone.
+    static func withRepair<T>(_ work: (BridgeConfig) async throws -> T) async throws -> T {
+        do {
+            return try await work(.stored)
+        } catch BridgeError.rejected {
+            guard await reclaim() else { throw BridgeError.rejected }
+            return try await work(.stored)
+        }
+    }
 }
 
 enum BridgeAPI {
@@ -115,7 +142,7 @@ enum BridgeAPI {
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, resp) = try await URLSession.shared.data(for: req)
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-        if code == 401 { throw BridgeError.message("The bridge rejected this phone's token. Reset it with @R and pair again.") }
+        if code == 401 { throw BridgeError.rejected }
         guard code == 200, let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw BridgeError.message("Bridge said: \(String(decoding: data, as: UTF8.self))")
         }
@@ -247,8 +274,9 @@ enum BridgeSync {
         let fp = fingerprint(body)
         if !force, UserDefaults.standard.string(forKey: hashKey) == fp { return nil }
         do {
-            let restart = try await BridgeAPI.push(body, cfg)
+            let restart = try await BridgeAPI.withRepair { c in try await BridgeAPI.push(body, c) }
             UserDefaults.standard.set(fp, forKey: hashKey)
+            cfg = BridgeConfig.stored
             cfg.lastPush = .now
             BridgeConfig.stored = cfg
             return restart ? "Sent. The bridge is restarting to update Apple Home (about 20 s)." : "Sent to the bridge."
@@ -267,7 +295,12 @@ extension BridgeAPI {
         req.timeoutInterval = 5
         req.setValue(cfg.token, forHTTPHeaderField: "X-Afterglow-Token")
         let (_, resp) = try await URLSession.shared.data(for: req)
-        guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw BridgeError.message("The bridge refused. Update its firmware first.") }
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        if code == 401 {
+            guard cfg == BridgeConfig.stored, await reclaim() else { throw BridgeError.rejected }
+            return try await resetDevicePairing(app, .stored)
+        }
+        guard code == 200 else { throw BridgeError.message("The bridge refused. Update its firmware first.") }
     }
 }
 
@@ -312,7 +345,7 @@ enum BridgeFirmware {
         req.setValue(cfg.token, forHTTPHeaderField: "X-Afterglow-Token")
         let (data, r) = try await URLSession.shared.upload(for: req, from: body)
         let code = (r as? HTTPURLResponse)?.statusCode ?? 0
-        if code == 401 { throw BridgeError.message("The bridge rejected this phone's token.") }
+        if code == 401 { throw BridgeError.rejected }
         guard code == 200 else { throw BridgeError.message("Update failed: \(String(decoding: data, as: UTF8.self))") }
         progress("Installed. The bridge is restarting (about 20 s).")
     }
