@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.4.1"
+#define FW_VERSION "1.5.0"
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -836,8 +836,10 @@ static void runBarTimers() {
   }
 }
 
+namespace ac { static bool applyConfig(const String &body); }
 #include "Extras.h"
 #include "Govee.h"
+#include "AC.h"
 #include "Screen.h"
 
 // ---------------------------------------------------------------------------------------------
@@ -955,6 +957,7 @@ static void handleInfo() {
   d["followTV"] = followTV;
   extrasInfo(d);
   screen::info(d);
+  ac::info(d);
 #ifdef HAS_GOVEE
   govee::info(d);
 #endif
@@ -1201,6 +1204,7 @@ void setup() {
     parseConfig(cfg, scratch, true);
   }
   loadExtras(cfg);
+  ac::load();
 #ifdef HAS_GOVEE
   govee::begin();
 #endif
@@ -1258,6 +1262,7 @@ void setup() {
   }
 
   addExtraAccessories(used);
+  ac::addAccessory(used);
 #ifdef HAS_GOVEE
   govee::addAccessory(used);
   new SpanUserCommand('G', "- forget the Govee thermometer and pick again", govee::forget);

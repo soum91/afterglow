@@ -624,7 +624,7 @@ static bool runExtras() {   // true if it did something that took time
 
 static String devToken(const String &app) { return prefs.getString(("tok_" + app).c_str(), ""); }
 
-static bool devAppOK(const String &app) { return app == "exhale" || app == "redshift" || app == "keystone"; }
+static bool devAppOK(const String &app) { return app == "exhale" || app == "redshift" || app == "keystone" || app == "equinox"; }
 
 static void handleDevClaim() {
   String app = server.arg("app");
@@ -657,7 +657,9 @@ static void handleDevConfig() {
   String body = server.arg("plain");
   bool restart = false;
   if (app == "keystone") { server.send(400, "application/json", "{\"error\":\"keystone has no device config\"}"); return; }
-  if (app == "exhale") {
+  if (app == "equinox") {
+    restart = ac::applyConfig(body);
+  } else if (app == "exhale") {
     PurCfg p;
     if (!parsePurifier(body, p)) { server.send(400, "application/json", "{\"error\":\"bad json\"}"); return; }
     writeFile("/exhale.json", body);

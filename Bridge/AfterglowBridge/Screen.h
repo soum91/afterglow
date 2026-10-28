@@ -389,7 +389,7 @@ static void handleAdmin() {
     String app = d["app"] | "";
     if (app == "afterglow") { token = ""; prefs.remove("token"); }
     else if (app == "subwave") { barToken = ""; prefs.remove("bartoken"); }
-    else if (app == "exhale" || app == "redshift") prefs.remove(("tok_" + app).c_str());
+    else if (app == "exhale" || app == "redshift" || app == "equinox") prefs.remove(("tok_" + app).c_str());
     else { server.send(400, "application/json", "{\"error\":\"unknown app\"}"); return; }
     logEvent(app + " pairing cleared");
   } else if (a == "follow") {
@@ -431,6 +431,7 @@ static void info(JsonDocument &d) {
   d["paired"]["subwave"] = barToken.length() > 0;
   d["paired"]["exhale"] = devToken("exhale").length() > 0;
   d["paired"]["redshift"] = devToken("redshift").length() > 0;
+  d["paired"]["equinox"] = devToken("equinox").length() > 0;
 }
 
 // From loop(), on HomeSpan's core.
