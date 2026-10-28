@@ -10,6 +10,7 @@ In Home you get:
 - **IR remotes** from Redshift (Settings › Apple Home bridge): power as a switch, other buttons as one-tap buttons. IR can't report back, so the switch shows what was last sent.
 - **Vizio sound bar** from Subwave.
 - **Govee thermometer** (H5102 and similar) over Bluetooth, like a Govee gateway: temperature, humidity, battery. On first boot it picks the strongest Govee sensor it hears within 30 s; `@G` on the serial console picks again. Not on ESP32-C3 builds (no flash room).
+- **Vicohome camera** from Nightjar (Settings › Apple Home bridge): a Motion sensor, a Person sensor and the battery, from Vicohome's cloud every ~20 s, so expect 10 to 30 s of lag. Optional rule the bridge runs itself (no home hub needed): a person on camera turns chosen lights on, and they go off after a few quiet minutes.
 
 Firmware updates go over Wi-Fi from Afterglow › Settings › Apple Home bridge › Firmware, after the first USB flash.
 

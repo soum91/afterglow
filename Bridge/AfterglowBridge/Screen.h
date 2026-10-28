@@ -295,7 +295,7 @@ static uint32_t clearedAt = 0;
 static void clearAllPairings() {
   token = ""; prefs.remove("token");
   barToken = ""; prefs.remove("bartoken");
-  for (const char *k : {"tok_keystone", "tok_exhale", "tok_redshift", "tok_equinox"}) prefs.remove(k);
+  for (const char *k : {"tok_keystone", "tok_exhale", "tok_redshift", "tok_equinox", "tok_nightjar"}) prefs.remove(k);
   logEvent("All app pairings cleared with the BOOT button");
   clearedAt = millis();
   if (!clearedAt) clearedAt = 1;
@@ -441,7 +441,7 @@ static void handleAdmin() {
     String app = d["app"] | "";
     if (app == "afterglow") { token = ""; prefs.remove("token"); }
     else if (app == "subwave") { barToken = ""; prefs.remove("bartoken"); }
-    else if (app == "exhale" || app == "redshift" || app == "equinox") prefs.remove(("tok_" + app).c_str());
+    else if (app == "exhale" || app == "redshift" || app == "equinox" || app == "nightjar") prefs.remove(("tok_" + app).c_str());
     else { server.send(400, "application/json", "{\"error\":\"unknown app\"}"); return; }
     logEvent(app + " pairing cleared");
   } else if (a == "follow") {
@@ -485,6 +485,7 @@ static void info(JsonDocument &d) {
   d["paired"]["exhale"] = devToken("exhale").length() > 0;
   d["paired"]["redshift"] = devToken("redshift").length() > 0;
   d["paired"]["equinox"] = devToken("equinox").length() > 0;
+  d["paired"]["nightjar"] = devToken("nightjar").length() > 0;
 }
 
 // From loop(), on HomeSpan's core.

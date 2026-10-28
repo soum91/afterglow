@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.7.2"
+#define FW_VERSION "1.8.0"
 #include <esp_system.h>
 #include <nvs.h>
 // Crash-loop guard: after two crash restarts in a row the bridge boots without the AC cloud client and the
@@ -852,6 +852,7 @@ static void runBarTimers() {
 }
 
 namespace ac { static bool applyConfig(const String &body); }
+namespace cam { static bool applyConfig(const String &body); }
 static void stopBluetoothForOta();
 #include "Extras.h"
 #include "Govee.h"
@@ -859,6 +860,7 @@ static void stopBluetoothForOta() {
   govee::radioStop();
 }
 #include "AC.h"
+#include "Camera.h"
 namespace provision { static String status; }   // Wi-Fi setup progress, drawn by Screen.h, set by Provision.h
 #include "Screen.h"
 #include "Relay.h"
@@ -984,6 +986,7 @@ static void handleInfo() {
   extrasInfo(d);
   screen::info(d);
   ac::info(d);
+  cam::info(d);
   d["boot"]["reason"] = bootReason;
   d["boot"]["crashes"] = crashCount;
   d["boot"]["safeMode"] = safeMode;
@@ -1187,6 +1190,7 @@ static void worker(void *) {
     govee::tick();
 #endif
     ac::step();
+    cam::step();
     if (runExtras()) continue;
     pollTV();
     runTimers();
@@ -1266,6 +1270,7 @@ void setup() {
     if (setupOnly) { Serial.println("[keystone] no Wi-Fi saved: lean setup boot"); }
   }
   ac::load();
+  cam::load();
   relay::begin();
 #ifdef HAS_GOVEE
   if (!setupOnly) govee::begin();
@@ -1326,6 +1331,7 @@ void setup() {
 
   addExtraAccessories(used);
   ac::addAccessory(used);
+  cam::addAccessory(used);
 #ifdef HAS_GOVEE
   govee::addAccessory(used);
   new SpanUserCommand('G', "- forget the Govee thermometer and pick again", govee::forget);
