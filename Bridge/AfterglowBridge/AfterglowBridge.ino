@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.5.3"
+#define FW_VERSION "1.5.4"
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures

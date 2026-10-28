@@ -287,11 +287,30 @@ static const int WAKE_PIN = 0;
 #endif
 static uint32_t wakeUntil = 0;
 static bool wakeInit = false;
+static uint32_t heldSince = 0;
+static uint32_t clearedAt = 0;
+
+// Holding BOOT for 8 s clears every app pairing (Afterglow, Keystone, Subwave, Exhale, Redshift, Equinox).
+// Wi-Fi, Apple Home and all device settings stay. Physical access is the proof of ownership.
+static void clearAllPairings() {
+  token = ""; prefs.remove("token");
+  barToken = ""; prefs.remove("bartoken");
+  for (const char *k : {"tok_keystone", "tok_exhale", "tok_redshift", "tok_equinox"}) prefs.remove(k);
+  logEvent("All app pairings cleared with the BOOT button");
+  clearedAt = millis();
+  if (!clearedAt) clearedAt = 1;
+}
 
 static void draw() {
-  if (!oled::present()) return;
   if (!wakeInit) { pinMode(WAKE_PIN, INPUT_PULLUP); wakeInit = true; wakeUntil = 60000; }   // on for the first minute after boot
-  if (digitalRead(WAKE_PIN) == LOW) wakeUntil = millis() + 30000;
+  if (digitalRead(WAKE_PIN) == LOW) {
+    wakeUntil = millis() + 30000;
+    if (!heldSince) heldSince = millis();
+    if (heldSince != 1 && millis() - heldSince >= 8000) { clearAllPairings(); heldSince = 1; }
+  } else {
+    heldSince = 0;
+  }
+  if (!oled::present()) return;   // the button reset above works without a screen too
   bool woke = (int32_t)(wakeUntil - millis()) > 0;
   bool ident = (identifyUntil && (int32_t)(identifyUntil - millis()) > 0) || woke;
   bool countdown = ruleDueMs != 0;
@@ -307,7 +326,15 @@ static void draw() {
 
   G().clearBuffer();
   wifi_mode_t mode = WiFi.getMode();
-  if (woke && !(identifyUntil && (int32_t)(identifyUntil - millis()) > 0)) {
+  if (clearedAt && millis() - clearedAt < 15000) {
+    statusBar("Pairings cleared");
+    bodyLines("All apps can pair", "again. Wi-Fi and", "Apple Home are kept.", nullptr);
+  } else if (heldSince > 1 && millis() - heldSince > 1000) {
+    statusBar("Keep holding BOOT");
+    int left = max(0, 8 - (int)((millis() - heldSince) / 1000));
+    String l = "Clears app pairings in " + String(left) + "s";
+    bodyLines(l.c_str(), "Let go to cancel.", nullptr, nullptr);
+  } else if (woke && !(identifyUntil && (int32_t)(identifyUntil - millis()) > 0)) {
     // Woken by the button or just booted: who and where it is.
     statusBar(bridgeName);
     String l2 = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : ((mode & WIFI_AP) ? "Setup: HomeSpan-Setup" : "Connecting to Wi-Fi");

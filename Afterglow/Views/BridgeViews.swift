@@ -201,7 +201,7 @@ struct HomeBridgeView: View {
         do {
             let i = try await BridgeAPI.info(c)
             if i.claimed == true && c.token.isEmpty {
-                status = "This bridge is already paired with another phone. Type @R in its serial console to reset it."
+                status = "This bridge is paired with another Afterglow install. Hold the BOOT button on the bridge for 8 seconds to clear app pairings (firmware 1.5.4+), then pair again."
                 return
             }
             c.token = try await BridgeAPI.claim(c)
