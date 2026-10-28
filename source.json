@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.23",
+          "buildVersion": "23",
+          "date": "2026-10-28T05:23:59Z",
+          "localizedDescription": "- Add Reset Keystone pairing (50081c2)\n- Bridge 1.5.1: steadier Wi-Fi updates (Bluetooth and the AC pause during the upload) (9812a91)\n- Bridge 1.5: the Hisense AC in Apple Home with Smart Auto on the bridge (51a5fc5)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-23/Afterglow-1.0.23-build-23.ipa",
+          "size": 1569271,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.22",
           "buildVersion": "22",
           "date": "2026-10-28T04:07:04Z",
@@ -191,11 +200,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.22",
-      "versionDate": "2026-10-28T04:07:04Z",
-      "versionDescription": "- Call the bridge Keystone Bridge and point to the Keystone app (a2cdba8)\n- Bridge 1.4.1: called Keystone Bridge by default (599e9b6)\n- Bridge 1.4: redesigned screen, display settings and Keystone controls (950793e)\n- Bridge guide: everything that shows up in Apple Home (24fd4f2)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-22/Afterglow-1.0.22-build-22.ipa",
-      "size": 1569306,
+      "version": "1.0.23",
+      "versionDate": "2026-10-28T05:23:59Z",
+      "versionDescription": "- Add Reset Keystone pairing (50081c2)\n- Bridge 1.5.1: steadier Wi-Fi updates (Bluetooth and the AC pause during the upload) (9812a91)\n- Bridge 1.5: the Hisense AC in Apple Home with Smart Auto on the bridge (51a5fc5)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-23/Afterglow-1.0.23-build-23.ipa",
+      "size": 1569271,
       "appPermissions": {}
     }
   ],
