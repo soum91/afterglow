@@ -42,7 +42,7 @@ Afterglow › Settings › Apple Home bridge. It finds the bridge on the network
 
 ## 4. Add to Home
 
-Home app › + › Add Accessory › More options › **Afterglow Bridge** › Add Anyway › setup code.
+Home app › + › Add Accessory › More options › **Keystone Bridge** › Add Anyway › setup code.
 
 ## TV automations
 

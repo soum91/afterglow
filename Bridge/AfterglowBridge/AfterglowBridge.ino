@@ -1,5 +1,5 @@
 /*
-  Afterglow Bridge
+  Keystone Bridge (started as the Afterglow bridge)
   ESP32 firmware that puts Tuya / Smart Life lights in Apple Home (HomeKit, via HomeSpan) and talks to them
   over the Tuya LAN protocol, no cloud. It also watches a Sony Bravia TV and runs the TV automations you set
   in the Afterglow app (lights off when the TV turns off, with a delay it learns from you), so they work
@@ -11,7 +11,7 @@
   First boot:
     1. Join Wi-Fi "HomeSpan-Setup" (password: homespan), enter your 2.4 GHz Wi-Fi and a setup code.
     2. In Afterglow: Settings > Apple Home bridge. It finds the bridge and sends your lights.
-    3. Home app > + > Add Accessory > More options > "Afterglow Bridge".
+    3. Home app > + > Add Accessory > More options > "Keystone Bridge".
   Serial (115200): @i shows status, @R forgets the paired phone so another can pair, @B does the same for Subwave.
 */
 
@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.4.0"
+#define FW_VERSION "1.4.1"
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -1099,7 +1099,7 @@ static void startNetworkServices() {
     server.on("/api/bar/power", HTTP_POST, handleBarPower);
     registerExtraRoutes();
     screen::registerRoutes();
-    server.onNotFound([]() { server.send(404, "text/plain", "Afterglow Bridge"); });
+    server.onNotFound([]() { server.send(404, "text/plain", "Keystone Bridge"); });
     server.begin();
     serverUp = true;
     configTime(0, 0, "pool.ntp.org", "time.google.com");
@@ -1157,7 +1157,7 @@ static void worker(void *) {
 // Serial commands
 
 static void showInfo(const char *) {
-  Serial.printf("Afterglow Bridge %s, %d lights, TV: %s, learned delay %d s (%d samples), paired: %s, follow TV: %s\n",
+  Serial.printf("Keystone Bridge %s, %d lights, TV: %s, learned delay %d s (%d samples), paired: %s, follow TV: %s\n",
                 FW_VERSION, (int)lights.size(), tvLabel.c_str(), learnedDelay(), (int)samples.size(),
                 token.length() ? "yes" : "no", followTV ? "yes" : "no");
   for (auto &L : lights)
@@ -1207,7 +1207,7 @@ void setup() {
 
   homeSpan.enableAutoStartAP();
   homeSpan.setSketchVersion(FW_VERSION);
-  screen::bridgeName = prefs.getString("bridgeName", "Afterglow Bridge");
+  screen::bridgeName = prefs.getString("bridgeName", "Keystone Bridge");
   screen::load();
   homeSpan.begin(Category::Bridges, screen::bridgeName.c_str(), "afterglow");
   new SpanUserCommand('i', "- show lights, TV and learned delay", showInfo);
@@ -1219,7 +1219,7 @@ void setup() {
       new Characteristic::Identify();
       new Characteristic::Name(screen::bridgeName.c_str());
       new Characteristic::Manufacturer("soum91");
-      new Characteristic::Model("Afterglow Bridge");
+      new Characteristic::Model("Keystone Bridge");
       new Characteristic::FirmwareRevision(FW_VERSION);
 
   std::vector<uint32_t> used = {1, 65000, 65001, 65002, 65010};
@@ -1264,7 +1264,7 @@ void setup() {
 #endif
 
   xTaskCreatePinnedToCore(worker, "afterglow", 20480, nullptr, 1, nullptr, 0);
-  Serial.printf("Afterglow Bridge %s with %d lights\n", FW_VERSION, (int)lights.size());
+  Serial.printf("Keystone Bridge %s with %d lights\n", FW_VERSION, (int)lights.size());
 }
 
 void loop() {

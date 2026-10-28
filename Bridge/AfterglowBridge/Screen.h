@@ -309,7 +309,7 @@ static void draw() {
     bodyLines("Looking for Wi-Fi.", "Wrong network? Reset", "Wi-Fi in Keystone or", "type W in console");
   } else if (!token.length() && devToken("keystone").isEmpty()) {
     statusBar(WiFi.localIP().toString());
-    bodyLines("Pair in Keystone or", "Afterglow, then add", "to Home with code", "466-37-726");
+    bodyLines("Pair in Keystone,", "then Home app: add", "Keystone Bridge,", "code 466-37-726");
   } else if (countdown) {
     pageCountdown();
   } else if (dim) {
