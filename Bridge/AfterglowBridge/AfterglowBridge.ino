@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.5.0"
+#define FW_VERSION "1.5.1"
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -837,8 +837,14 @@ static void runBarTimers() {
 }
 
 namespace ac { static bool applyConfig(const String &body); }
+static void stopBluetoothForOta();
 #include "Extras.h"
 #include "Govee.h"
+static void stopBluetoothForOta() {
+#ifdef HAS_GOVEE
+  NimBLEDevice::getScan()->stop();
+#endif
+}
 #include "AC.h"
 #include "Screen.h"
 

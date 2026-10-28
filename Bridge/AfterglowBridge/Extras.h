@@ -698,13 +698,16 @@ static void handleDevTest() {
 
 // Firmware update, uploaded by Afterglow (multipart, field "fw").
 static bool updateAllowed = false;
+static volatile bool otaActive = false;
 static String updateError;
 
 static void handleUpdateDone() {
   if (!updateAllowed) { server.send(401, "application/json", "{\"error\":\"unauthorized\"}"); return; }
   bool ok = !Update.hasError() && updateError.isEmpty();
   server.send(ok ? 200 : 500, "application/json", ok ? "{\"ok\":true}" : "{\"ok\":false,\"error\":\"" + updateError + "\"}");
-  if (ok) { logEvent("Updated, restarting"); delay(800); ESP.restart(); }
+  logEvent(ok ? "Updated, restarting" : "Update failed: " + updateError + ", restarting");
+  delay(800);
+  ESP.restart();   // either way: a clean start (Bluetooth was stopped for the upload)
 }
 
 static void handleUpdateUpload() {
@@ -716,6 +719,8 @@ static void handleUpdateUpload() {
     updateError = "";
     if (!updateAllowed) return;
     logEvent("Firmware update started");
+    otaActive = true;
+    stopBluetoothForOta();   // give Wi-Fi the radio for the upload
     if (!Update.begin(UPDATE_SIZE_UNKNOWN)) updateError = Update.errorString();
   } else if (up.status == UPLOAD_FILE_WRITE) {
     if (!updateAllowed || updateError.length()) return;
@@ -726,6 +731,7 @@ static void handleUpdateUpload() {
   } else if (up.status == UPLOAD_FILE_ABORTED) {
     Update.abort();
     updateError = "upload aborted";
+    if (otaActive) { delay(200); ESP.restart(); }
   }
 }
 

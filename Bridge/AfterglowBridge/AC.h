@@ -383,7 +383,7 @@ static void task(void *) {
   refreshToken = prefs.getString("ac_rt", "");
   for (;;) {
     vTaskDelay(pdMS_TO_TICKS(250));
-    if (!cfg.configured || WiFi.status() != WL_CONNECTED || time(nullptr) < 1700000000) continue;
+    if (otaActive || !cfg.configured || WiFi.status() != WL_CONNECTED || time(nullptr) < 1700000000) continue;
     Cmd c{"", false};
     bool have = false;
     xSemaphoreTake(lock, portMAX_DELAY);
