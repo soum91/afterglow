@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.25",
+          "buildVersion": "25",
+          "date": "2026-10-28T05:58:04Z",
+          "localizedDescription": "- Bridge 1.5.4: hold BOOT 8 s to clear app pairings; point Afterglow at it (6044371)\n- Bridge 1.5.3: restart itself if the web/automation task ever freezes (bee9cca)\n- Bridge 1.5.2: screen shows name, IP and version for a minute after boot and when BOOT is pressed (f55d652)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-25/Afterglow-1.0.25-build-25.ipa",
+          "size": 1575963,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.24",
           "buildVersion": "24",
           "date": "2026-10-28T05:28:12Z",
@@ -209,11 +218,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.24",
-      "versionDate": "2026-10-28T05:28:12Z",
-      "versionDescription": "- Re-pair automatically when the bridge has forgotten Afterglow (b9a6dbb)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-24/Afterglow-1.0.24-build-24.ipa",
-      "size": 1575632,
+      "version": "1.0.25",
+      "versionDate": "2026-10-28T05:58:04Z",
+      "versionDescription": "- Bridge 1.5.4: hold BOOT 8 s to clear app pairings; point Afterglow at it (6044371)\n- Bridge 1.5.3: restart itself if the web/automation task ever freezes (bee9cca)\n- Bridge 1.5.2: screen shows name, IP and version for a minute after boot and when BOOT is pressed (f55d652)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-25/Afterglow-1.0.25-build-25.ipa",
+      "size": 1575963,
       "appPermissions": {}
     }
   ],
