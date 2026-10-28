@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.26",
+          "buildVersion": "26",
+          "date": "2026-10-28T22:02:49Z",
+          "localizedDescription": "- Bridge firmware moved to soum91/keystone (9e3ebf8)\n- Bridge 1.9.0: alerts over ntfy instead of Telegram (f087daa)\n- Bridge 1.9.0: Telegram alerts for the camera, with an optional Claude check (38b2be6)\n- Bridge 1.8.0: Vicohome camera in Apple Home (from Nightjar) (6ef4e27)\n- Bridge 1.7.2: make room for the AC's HTTPS calls (fbaf6a9)\n- Bridge 1.7.1: free ~50 KB of RAM (it was down to 3 KB, too little to join Wi-Fi) (37e2558)\n- Bridge 1.7.0: control endpoint for Keystone (4772094)\n- Bridge 1.6.4: setup boot no longer looks like a crash (28e74fc)\n- Bridge 1.6.3: lean boot for Wi-Fi setup (e7a7733)\n- Bridge 1.6.2: new Wi-Fi setup that iPhones can actually use (068809b)\n- Web installer: repair install that keeps Wi-Fi and pairings (90a94b8)\n- Bridge 1.6.1: fix the crash loop in 1.6.0 (13b06d1)\n- Bridge 1.6: encrypted remote access through a public MQTT relay; fix the AC's TLS timeout and report why HTTPS fails (2ccf7c5)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-26/Afterglow-1.0.26-build-26.ipa",
+          "size": 1575967,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.25",
           "buildVersion": "25",
           "date": "2026-10-28T05:58:04Z",
@@ -218,11 +227,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.25",
-      "versionDate": "2026-10-28T05:58:04Z",
-      "versionDescription": "- Bridge 1.5.4: hold BOOT 8 s to clear app pairings; point Afterglow at it (6044371)\n- Bridge 1.5.3: restart itself if the web/automation task ever freezes (bee9cca)\n- Bridge 1.5.2: screen shows name, IP and version for a minute after boot and when BOOT is pressed (f55d652)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-25/Afterglow-1.0.25-build-25.ipa",
-      "size": 1575963,
+      "version": "1.0.26",
+      "versionDate": "2026-10-28T22:02:49Z",
+      "versionDescription": "- Bridge firmware moved to soum91/keystone (9e3ebf8)\n- Bridge 1.9.0: alerts over ntfy instead of Telegram (f087daa)\n- Bridge 1.9.0: Telegram alerts for the camera, with an optional Claude check (38b2be6)\n- Bridge 1.8.0: Vicohome camera in Apple Home (from Nightjar) (6ef4e27)\n- Bridge 1.7.2: make room for the AC's HTTPS calls (fbaf6a9)\n- Bridge 1.7.1: free ~50 KB of RAM (it was down to 3 KB, too little to join Wi-Fi) (37e2558)\n- Bridge 1.7.0: control endpoint for Keystone (4772094)\n- Bridge 1.6.4: setup boot no longer looks like a crash (28e74fc)\n- Bridge 1.6.3: lean boot for Wi-Fi setup (e7a7733)\n- Bridge 1.6.2: new Wi-Fi setup that iPhones can actually use (068809b)\n- Web installer: repair install that keeps Wi-Fi and pairings (90a94b8)\n- Bridge 1.6.1: fix the crash loop in 1.6.0 (13b06d1)\n- Bridge 1.6: encrypted remote access through a public MQTT relay; fix the AC's TLS timeout and report why HTTPS fails (2ccf7c5)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-26/Afterglow-1.0.26-build-26.ipa",
+      "size": 1575967,
       "appPermissions": {}
     }
   ],
