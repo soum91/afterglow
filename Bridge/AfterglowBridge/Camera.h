@@ -22,6 +22,10 @@ struct Cfg {
   bool ruleOn = false, window = false;
   int from = 0, to = 0, offAfter = 10;   // minutes; offAfter 0 leaves the lights on
   std::vector<String> lights;
+  // Alerts: Telegram, optionally checked by Claude first
+  bool alertOn = false, alertAll = false, aiOnly = false;
+  String tg, chat, aiKey, aiModel = "claude-haiku-5-5";
+  int cooldown = 60;   // seconds between unflagged alerts
 };
 static Cfg cfg;
 static String homeSig, token;
@@ -42,6 +46,11 @@ static bool parseCfg(const String &json, Cfg &out) {
     c.ruleOn = r["enabled"] | false; c.window = r["window"] | false;
     c.from = r["from"] | 0; c.to = r["to"] | 0; c.offAfter = r["offAfter"] | 10;
     for (JsonVariant v : r["lights"].as<JsonArray>()) c.lights.push_back(v.as<String>());
+    JsonObject a = o["alerts"];
+    c.tg = a["tg"] | ""; c.chat = a["chat"] | "";
+    c.alertOn = (a["enabled"] | false) && c.tg.length() && c.chat.length();
+    c.alertAll = a["all"] | false; c.cooldown = a["cooldown"] | 60;
+    c.aiKey = a["aiKey"] | ""; c.aiModel = a["aiModel"] | "claude-haiku-5-5"; c.aiOnly = (a["aiOnly"] | false) && c.aiKey.length();
     c.configured = c.serial.length() && (c.token.length() || (c.email.length() && c.pass.length()));
   }
   out = c;
@@ -69,7 +78,8 @@ static std::vector<int> ruleLit;
 // HTTPS POST, parsed straight off the socket through `filter` (HTTP/1.0, so no chunked framing) to
 // keep the raw reply out of RAM. If memory is short it borrows the AC's handshake: the remote relay
 // lets go of its buffer for the duration, and reconnects right after.
-static int post(const String &path, const String &body, JsonDocument &filter, JsonDocument &d) {
+static int post(const String &url, const String &body, JsonDocument &filter, JsonDocument &d,
+                const char *h1 = nullptr, const String &v1 = "", const char *h2 = nullptr, const char *v2 = nullptr) {
   workerBeat = millis();
   bool borrowed = false;
   if (ESP.getMaxAllocHeap() < 40000 && relayHolding) {
@@ -87,9 +97,10 @@ static int post(const String &path, const String &body, JsonDocument &filter, Js
     h.useHTTP10(true);
     h.setConnectTimeout(8000);
     h.setTimeout(15000);
-    if (h.begin(c, cfg.base + path)) {
+    if (h.begin(c, url)) {
       h.addHeader("Content-Type", "application/json");
-      if (token.length()) h.addHeader("Authorization", token);
+      if (h1 && v1.length()) h.addHeader(h1, v1);
+      if (h2 && v2) h.addHeader(h2, v2);
       code = h.POST(body);
       d.clear();
       if (code > 0 && deserializeJson(d, h.getStream(), DeserializationOption::Filter(filter))) d.clear();
@@ -110,7 +121,7 @@ static bool login() {
   token = "";
   f["msg"] = true;
   f["data"]["token"]["token"] = true;
-  if (post("/account/login", body, f, d) <= 0) { if (!st.error.startsWith("low")) st.error = "sign in: no reply"; return false; }
+  if (post(cfg.base + "/account/login", body, f, d) <= 0) { if (!st.error.startsWith("low")) st.error = "sign in: no reply"; return false; }
   token = d["data"]["token"]["token"] | "";
   if (!token.length()) { st.error = String("sign in failed: ") + (d["msg"] | "?"); return false; }
   prefs.putString("cam_tok", token);
@@ -127,7 +138,7 @@ static bool call(const char *path, JsonDocument &body, JsonDocument &filter, Jso
   serializeJson(body, b);
   for (int attempt = 0; attempt < 2; attempt++) {
     if (!token.length() && !login()) return false;
-    int code = post(path, b, filter, d);
+    int code = post(cfg.base + path, b, filter, d, "Authorization", token);
     if (code <= 0) { if (!st.error.startsWith("low")) st.error = "no reply (" + String(code) + ")"; return false; }
     if (code == 401 || code == 403) { token = ""; continue; }
     if (d.isNull()) { st.error = "HTTP " + String(code); return false; }
@@ -175,6 +186,90 @@ static void runRuleTimer() {
   if (n) logEvent("Nobody on camera for " + String(cfg.offAfter) + " min: " + String(n) + " off");
 }
 
+// ---------------------------------------------------------------------------------------------
+// Alerts
+
+struct Alert { String trace, img; uint32_t at; bool person; };
+static std::vector<Alert> alerts;
+static uint32_t lastAlertMs = 0;
+static int alertsSent = 0;
+static String alertErr, lastAi;
+
+// Claude looks at the snapshot (by URL, so the image never touches the bridge's RAM).
+static String askAI(const String &img) {
+  JsonDocument b, f, d;
+  b["model"] = cfg.aiModel;
+  b["max_tokens"] = 80;
+  JsonArray content = b["messages"][0]["content"].to<JsonArray>();
+  b["messages"][0]["role"] = "user";
+  JsonObject im = content.add<JsonObject>();
+  im["type"] = "image";
+  im["source"]["type"] = "url";
+  im["source"]["url"] = img;
+  JsonObject t = content.add<JsonObject>();
+  t["type"] = "text";
+  t["text"] = "Frame from a home security camera. Reply with exactly one line: FLAGS: <close,tamper,food or none> | "
+              "<at most 15 words on who is there and what they are doing>. close = a person is very near the lens, "
+              "face or body filling much of the frame. tamper = touching, covering, turning or blocking the camera. "
+              "food = handling or taking food, or opening the fridge or cupboards.";
+  String body;
+  serializeJson(b, body);
+  f["content"][0]["text"] = true;
+  f["error"]["message"] = true;
+  int code = post("https://api.anthropic.com/v1/messages", body, f, d, "x-api-key", cfg.aiKey, "anthropic-version", "2023-06-01");
+  String out = d["content"][0]["text"] | "";
+  if (code != 200 || !out.length()) { alertErr = "AI: " + String(d["error"]["message"] | ("HTTP " + String(code)).c_str()); return ""; }
+  out.trim();
+  return out;
+}
+
+static bool telegram(const String &img, const String &text) {
+  JsonDocument b, f, d;
+  b["chat_id"] = cfg.chat;
+  if (img.length()) { b["photo"] = img; b["caption"] = text; } else b["text"] = text;
+  String body;
+  serializeJson(b, body);
+  f["ok"] = true;
+  f["description"] = true;
+  String api = "https://api.telegram.org/bot" + cfg.tg + (img.length() ? "/sendPhoto" : "/sendMessage");
+  int code = post(api, body, f, d);
+  if (code == 200 && (d["ok"] | false)) return true;
+  alertErr = "Telegram: " + String(d["description"] | ("HTTP " + String(code)).c_str());
+  return false;
+}
+
+// One alert per pass. Waits up to 45 s for the event's snapshot to show up in Vicohome's list.
+static void runAlerts() {
+  if (alerts.empty()) return;
+  Alert a = alerts.front();
+  if (!a.img.length() && millis() - a.at < 45000UL) return;
+  alerts.erase(alerts.begin());
+  String flags, what;
+  bool checked = false;
+  if (cfg.aiKey.length() && a.img.length()) {
+    String r = askAI(a.img);
+    checked = r.length() > 0;
+    lastAi = r;
+    int bar = r.indexOf('|');
+    flags = r.substring(0, bar < 0 ? r.length() : bar);
+    flags.toLowerCase();
+    if (bar >= 0) { what = r.substring(bar + 1); what.trim(); }
+  }
+  bool tamper = flags.indexOf("tamper") >= 0, close = flags.indexOf("close") >= 0, food = flags.indexOf("food") >= 0;
+  bool flagged = tamper || close || food;
+  if (cfg.aiOnly && checked && !flagged) return;   // unchecked (no snapshot, AI down) still alerts
+  if (!flagged && lastAlertMs && millis() - lastAlertMs < (uint32_t)cfg.cooldown * 1000UL) return;
+  String head = tamper ? "Someone's messing with the camera" : close ? "Person right at the camera"
+              : food ? "Person at the food" : a.person ? "Person" : "Motion";
+  String text = String(flagged ? "\u26a0\ufe0f " : "") + head + " \u00b7 " + cfg.name + " \u00b7 " + clockText();
+  if (what.length()) text += "\n" + what;
+  if (telegram(a.img, text) || (a.img.length() && telegram("", text))) {
+    lastAlertMs = millis();
+    alertsSent++;
+    alertErr = "";
+  }
+}
+
 static void pollEvents() {
   long now = time(nullptr);
   long from = st.newestTs ? st.newestTs - 30 : now - 180;
@@ -186,6 +281,8 @@ static void pollEvents() {
   e["subcategoryInfoList"][0]["objectType"] = true;
   e["subcategoryInfoList"][0]["objectName"] = true;
   e["keyshots"][0]["objectCategory"] = true;
+  e["keyshots"][0]["imageUrl"] = true;
+  e["imageUrl"] = true;
   if (!call("/library/newselectlibrary", b, f, d)) { st.ok = false; return; }
   st.ok = true;
   bool motion = false, person = false;
@@ -197,12 +294,17 @@ static void pollEvents() {
     long ts = tv.is<const char *>() ? atol(tv.as<const char *>()) : tv.as<long>();
     if (ts > 1e12) ts /= 1000;
     if (ts > st.newestTs) st.newestTs = ts;
+    String img = x["imageUrl"] | "";
+    if (!img.length()) img = x["keyshots"][0]["imageUrl"] | "";
+    for (auto &al : alerts) if (al.trace == trace && !al.img.length()) al.img = img;   // snapshot arrived later
     if (!trace.length() || std::find(seen.begin(), seen.end(), trace) != seen.end()) continue;
     seen.push_back(trace);
     if (seen.size() > 12) seen.erase(seen.begin());
     if (!st.seeded) continue;   // first pass after boot: remember, don't fire
     motion = true;
-    if (isPerson(x)) person = true;
+    bool p = isPerson(x);
+    if (p) person = true;
+    if (cfg.alertOn && (p || cfg.alertAll) && alerts.size() < 4) alerts.push_back(Alert{trace, img, millis(), p});
   }
   if (!st.newestTs) st.newestTs = now - 60;
   st.seeded = true;
@@ -235,7 +337,8 @@ static void step() {
   if (!cfg.configured || millis() < 30000UL || otaActive || safeMode || setupOnly || govee::radioOn ||
       WiFi.status() != WL_CONNECTED || time(nullptr) < 1700000000) return;
   if (!lastDevice || millis() - lastDevice > CAM_DEVICE_MS) { lastDevice = millis(); pollDevice(); return; }
-  if (millis() - lastEvents > (st.ok ? CAM_POLL_MS : CAM_SLOW_MS)) { lastEvents = millis(); pollEvents(); }
+  if (millis() - lastEvents > (st.ok ? CAM_POLL_MS : CAM_SLOW_MS)) { lastEvents = millis(); pollEvents(); return; }
+  runAlerts();
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -348,6 +451,12 @@ static void info(JsonDocument &d) {
   JsonArray ls = r["lights"].to<JsonArray>();
   for (auto &id : cfg.lights) ls.add(id);
   if (ruleOffDue) r["offIn"] = (int)((int32_t)(ruleOffDue - millis()) / 1000);
+  JsonObject a = c["alerts"].to<JsonObject>();
+  a["enabled"] = cfg.alertOn;
+  a["ai"] = cfg.aiKey.length() > 0;
+  a["sent"] = alertsSent;
+  if (alertErr.length()) a["error"] = alertErr;
+  if (lastAi.length()) a["lastAi"] = lastAi;
 }
 
 }  // namespace cam
