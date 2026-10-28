@@ -624,7 +624,7 @@ static bool runExtras() {   // true if it did something that took time
 
 static String devToken(const String &app) { return prefs.getString(("tok_" + app).c_str(), ""); }
 
-static bool devAppOK(const String &app) { return app == "exhale" || app == "redshift"; }
+static bool devAppOK(const String &app) { return app == "exhale" || app == "redshift" || app == "keystone"; }
 
 static void handleDevClaim() {
   String app = server.arg("app");
@@ -656,6 +656,7 @@ static void handleDevConfig() {
   }
   String body = server.arg("plain");
   bool restart = false;
+  if (app == "keystone") { server.send(400, "application/json", "{\"error\":\"keystone has no device config\"}"); return; }
   if (app == "exhale") {
     PurCfg p;
     if (!parsePurifier(body, p)) { server.send(400, "application/json", "{\"error\":\"bad json\"}"); return; }
@@ -707,7 +708,9 @@ static void handleUpdateDone() {
 static void handleUpdateUpload() {
   HTTPUpload &up = server.upload();
   if (up.status == UPLOAD_FILE_START) {
-    updateAllowed = token.length() && server.header("X-Afterglow-Token") == token;
+    String ks = devToken("keystone");
+    updateAllowed = (token.length() && server.header("X-Afterglow-Token") == token) ||
+                    (ks.length() && server.header("X-Device-Token") == ks);
     updateError = "";
     if (!updateAllowed) return;
     logEvent("Firmware update started");

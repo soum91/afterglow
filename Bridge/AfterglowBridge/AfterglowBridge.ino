@@ -29,7 +29,7 @@
 #include "TuyaLan.h"
 #include "Display.h"
 
-#define FW_VERSION "1.3.0"
+#define FW_VERSION "1.4.0"
 #define API_PORT 8080
 #define POLL_MS 15000UL          // per light when reachable
 #define POLL_FAIL_MS 60000UL     // per light after repeated failures
@@ -358,6 +358,9 @@ struct FollowSwitch : Service::Switch {
     prefs.putBool("follow", followTV);
     logEvent(String("Lights follow TV ") + (followTV ? "on" : "off"));
     return true;
+  }
+  void loop() override {   // changed from Keystone
+    if (on->getVal() != (int)followTV) on->setVal(followTV);
   }
 };
 
@@ -715,6 +718,9 @@ struct BarFollowSwitch : Service::Switch {
     if (!barFollow) barOffDueMs = 0;
     return true;
   }
+  void loop() override {
+    if (on->getVal() != (int)barFollow) on->setVal(barFollow);
+  }
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -832,6 +838,7 @@ static void runBarTimers() {
 
 #include "Extras.h"
 #include "Govee.h"
+#include "Screen.h"
 
 // ---------------------------------------------------------------------------------------------
 // Talking to lights
@@ -947,6 +954,7 @@ static void handleInfo() {
   d["time"] = clockText();
   d["followTV"] = followTV;
   extrasInfo(d);
+  screen::info(d);
 #ifdef HAS_GOVEE
   govee::info(d);
 #endif
@@ -1090,6 +1098,7 @@ static void startNetworkServices() {
     server.on("/api/bar/config", HTTP_POST, handleBarConfig);
     server.on("/api/bar/power", HTTP_POST, handleBarPower);
     registerExtraRoutes();
+    screen::registerRoutes();
     server.onNotFound([]() { server.send(404, "text/plain", "Afterglow Bridge"); });
     server.begin();
     serverUp = true;
@@ -1105,56 +1114,6 @@ static void startNetworkServices() {
 // ---------------------------------------------------------------------------------------------
 // Status screen (boards with a built-in OLED)
 
-static void drawStatus() {
-  if (!oled::present()) return;
-  String l[8];
-  l[0] = " Afterglow " FW_VERSION;
-  wifi_mode_t mode = WiFi.getMode();
-  if (WiFi.status() == WL_CONNECTED) {
-    l[1] = WiFi.localIP().toString();
-    int ok = 0;
-    xSemaphoreTake(stateLock, portMAX_DELAY);
-    for (auto &L : lights) if (L.ok) ok++;
-    xSemaphoreGive(stateLock);
-    if (!token.length()) {
-      l[2] = "Open Afterglow:";
-      l[3] = "Settings >";
-      l[4] = "Apple Home bridge";
-      l[6] = "Home app code:";
-      l[7] = "466-37-726";
-    } else {
-      l[2] = "Lights " + String(ok) + "/" + String(lights.size()) + " ok";
-      l[3] = "TV: " + tvLabel;
-      if (bar.configured) l[4] = "Bar: " + barLabel;
-      l[5] = String("Follow TV: ") + (followTV ? "on" : "off");
-#ifdef HAS_GOVEE
-      if (govee::locked && !govee::stale())
-        l[5] = String((float)govee::temp, 1) + "C " + String((int)lroundf(govee::hum)) + "% " + (followTV ? "TV>on" : "TV>off");
-#endif
-      if (ruleDueMs) {
-        int left = (int)((int32_t)(ruleDueMs - millis()) / 1000);
-        l[6] = "Lights off in " + String(max(0, left)) + "s";
-      } else {
-        l[6] = "Off delay " + String(learnedDelay()) + "s";
-      }
-      l[7] = pur.configured && ps.pm >= 0 ? clockText() + "  PM " + String((int)lroundf(ps.pm)) : clockText();
-    }
-  } else if (mode & WIFI_AP) {
-    l[1] = "Wi-Fi setup:";
-    l[2] = "Join network";
-    l[3] = "HomeSpan-Setup";
-    l[4] = "pw: homespan";
-    l[6] = "Then pick your";
-    l[7] = "2.4 GHz Wi-Fi";
-  } else {
-    l[1] = "Connecting Wi-Fi";
-    l[3] = "Wrong Wi-Fi?";
-    l[4] = "Type W in the";
-    l[5] = "flasher console";
-    l[6] = "to set it again";
-  }
-  oled::lines(l);
-}
 
 // ---------------------------------------------------------------------------------------------
 // Worker task: everything that touches the network besides HomeKit itself.
@@ -1163,7 +1122,7 @@ static void worker(void *) {
   size_t next = 0;
   uint32_t lastNet = 0, lastDraw = 0;
   for (;;) {
-    if (millis() - lastDraw > 1000) { lastDraw = millis(); drawStatus(); }
+    if (millis() - lastDraw > 500) { lastDraw = millis(); screen::draw(); }
     if (millis() - lastNet > 3000) { lastNet = millis(); startNetworkServices(); }
     if (serverUp) server.handleClient();
     if (WiFi.status() != WL_CONNECTED) { vTaskDelay(pdMS_TO_TICKS(200)); continue; }
@@ -1248,7 +1207,9 @@ void setup() {
 
   homeSpan.enableAutoStartAP();
   homeSpan.setSketchVersion(FW_VERSION);
-  homeSpan.begin(Category::Bridges, "Afterglow Bridge", "afterglow");
+  screen::bridgeName = prefs.getString("bridgeName", "Afterglow Bridge");
+  screen::load();
+  homeSpan.begin(Category::Bridges, screen::bridgeName.c_str(), "afterglow");
   new SpanUserCommand('i', "- show lights, TV and learned delay", showInfo);
   new SpanUserCommand('R', "- forget the paired phone", resetPairing);
   new SpanUserCommand('B', "- forget the phone paired from Subwave (sound bar)", resetBarPairing);
@@ -1256,7 +1217,7 @@ void setup() {
   new SpanAccessory(1);
     new Service::AccessoryInformation();
       new Characteristic::Identify();
-      new Characteristic::Name("Afterglow Bridge");
+      new Characteristic::Name(screen::bridgeName.c_str());
       new Characteristic::Manufacturer("soum91");
       new Characteristic::Model("Afterglow Bridge");
       new Characteristic::FirmwareRevision(FW_VERSION);
@@ -1308,4 +1269,5 @@ void setup() {
 
 void loop() {
   homeSpan.poll();
+  screen::runPending();
 }
