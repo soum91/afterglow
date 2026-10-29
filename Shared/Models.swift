@@ -31,7 +31,18 @@ struct DeviceInfo: Codable, Hashable, Identifiable {
     /// Tuya light categories: dj bulb, dd strip, xdd ceiling, fwd ambient, dc string, tgq dimmer,
     /// tyndj solar, sxd spotlight, gyd motion light, fsd fan light, mbd/qn misc lamps.
     static let lightCategories: Set<String> = ["dj", "dd", "xdd", "fwd", "dc", "tgq", "tyndj", "sxd", "gyd", "fsd", "mbd", "tgkg"]
+    /// Switches and plugs the person added by hand (a light on a smart switch, whatever it's called).
+    static var included: Set<String> {
+        get { Set(AppGroup.read([String].self, "included-devices.json") ?? []) }
+        set { AppGroup.write(Array(newValue), "included-devices.json") }
+    }
+    /// Things that switch something on and off, which could have a light behind them.
+    var isSwitchLike: Bool {
+        ["kg", "cz", "pc", "tdq", "kgq", "dlq", "znjdq"].contains(category) ||
+            status.keys.contains { $0 == "switch" || $0.hasPrefix("switch_") }
+    }
     var isLight: Bool {
+        if Self.included.contains(id) { return true }
         if Self.lightCategories.contains(category) { return true }
         // A lamp on a smart plug or switch counts if it's named like one.
         let plugs: Set<String> = ["cz", "pc", "kg", "tdq"]

@@ -11,6 +11,9 @@ struct SettingsView: View {
                     NavigationLink { LightsManageView() } label: {
                         LabeledContent("Lights", value: "\(store.visible.count) shown")
                     }
+                    NavigationLink { AddDevicesView() } label: {
+                        Label("Add a switch or plug", systemImage: "plus.circle")
+                    }
                     Button {
                         Task { await store.findOnWiFi() }
                     } label: {
@@ -167,5 +170,71 @@ struct LightSettingsView: View {
         } else {
             testing = "No answer. Check the IP, that the phone is on the same Wi-Fi, and that Smart Life isn't holding the light's only connection."
         }
+    }
+}
+
+
+/// Smart switches and plugs from Smart Life that have a light behind them, added by hand.
+struct AddDevicesView: View {
+    @EnvironmentObject var store: AppStore
+    @State private var busy: String?
+
+    private func kind(_ d: DeviceInfo) -> String {
+        switch d.category {
+        case "kg", "tdq", "kgq": return "Switch"
+        case "cz", "pc": return "Plug"
+        case "dlq", "znjdq": return "Breaker"
+        default: return "On/off device"
+        }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                if store.addable.isEmpty {
+                    Text(store.loading ? "Looking at your Smart Life devices…" : "No other switches or plugs on your account. Add the device in Smart Life first, then pull to refresh.")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(store.addable) { d in
+                    HStack {
+                        Image(systemName: d.category == "cz" || d.category == "pc" ? "poweroutlet.type.b" : "switch.2")
+                            .foregroundStyle(.secondary).frame(width: 26)
+                        VStack(alignment: .leading) {
+                            Text(d.name)
+                            Text("\(kind(d))\(d.online ? "" : " · offline")").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if busy == d.id { ProgressView() } else {
+                            Button("Add") {
+                                busy = d.id
+                                Task { await store.include(d.id, true); busy = nil }
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                }
+            } header: {
+                Text("On your Smart Life account")
+            } footer: {
+                Text("For a light wired to a smart switch or plugged into a smart plug. Once added it works like your other lights: on/off, scenes, widgets, Siri, the TV trigger and the Apple Home bridge (send the lights to the bridge again afterwards).")
+            }
+
+            let added = store.lights.filter { DeviceInfo.included.contains($0.id) }
+            if !added.isEmpty {
+                Section("Added by hand") {
+                    ForEach(added) { l in
+                        HStack {
+                            Text(l.name)
+                            Spacer()
+                            Button("Remove", role: .destructive) { Task { await store.include(l.id, false) } }
+                                .buttonStyle(.bordered)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Add a switch or plug")
+        .refreshable { await store.reloadDevices() }
+        .task { if store.addable.isEmpty { await store.reloadDevices() } }
     }
 }

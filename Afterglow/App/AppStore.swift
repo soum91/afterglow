@@ -16,6 +16,8 @@ final class AppStore: ObservableObject {
     @Published var toast: String?
     @Published var finding: String?
     @Published var tvPower: TVPower?
+    /// Switches and plugs on the account that aren't shown as lights (yet). Filled by reloadDevices.
+    @Published var addable: [DeviceInfo] = []
 
     private var pollTask: Task<Void, Never>?
     private var pending: [String: LightState] = [:]
@@ -53,7 +55,9 @@ final class AppStore: ObservableObject {
         defer { loading = false }
         let client = TuyaClient(token: t)
         do {
-            let found = try await client.allDevices().filter(\.isLight)
+            let all = try await client.allDevices()
+            let found = all.filter(\.isLight)
+            addable = all.filter { !$0.isLight && $0.isSwitchLike }.sorted { $0.name < $1.name }
             var list = LightStore.load()
             var newOnes: [Light] = []
             for info in found {
@@ -102,6 +106,15 @@ final class AppStore: ObservableObject {
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    /// Show a switch or plug as a light (or stop showing it).
+    func include(_ id: String, _ on: Bool) async {
+        var set = DeviceInfo.included
+        if on { set.insert(id) } else { set.remove(id) }
+        DeviceInfo.included = set
+        await reloadDevices()
+        show(on ? "Added. Send your lights to the bridge again to put it in Apple Home." : "Removed.")
     }
 
     // MARK: Polling
