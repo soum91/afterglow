@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.28",
+          "buildVersion": "28",
+          "date": "2026-11-05T13:45:19Z",
+          "localizedDescription": "- Pick up new Smart Life devices on open, ask if a new switch has a light, and send lights to the bridge right away (fbcdc3f)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-28/Afterglow-1.0.28-build-28.ipa",
+          "size": 1605083,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.27",
           "buildVersion": "27",
           "date": "2026-10-29T02:58:19Z",
@@ -236,11 +245,11 @@
           "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.27",
-      "versionDate": "2026-10-29T02:58:19Z",
-      "versionDescription": "- Add a smart switch or plug as a light (b187e9e)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-27/Afterglow-1.0.27-build-27.ipa",
-      "size": 1597144,
+      "version": "1.0.28",
+      "versionDate": "2026-11-05T13:45:19Z",
+      "versionDescription": "- Pick up new Smart Life devices on open, ask if a new switch has a light, and send lights to the bridge right away (fbcdc3f)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-28/Afterglow-1.0.28-build-28.ipa",
+      "size": 1605083,
       "appPermissions": {}
     }
   ],
