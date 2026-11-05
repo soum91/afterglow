@@ -18,6 +18,9 @@ final class AppStore: ObservableObject {
     @Published var tvPower: TVPower?
     /// Switches and plugs on the account that aren't shown as lights (yet). Filled by reloadDevices.
     @Published var addable: [DeviceInfo] = []
+    /// Switches and plugs that appeared in Smart Life since last time, to ask whether a light is on them.
+    @Published var newSwitches: [DeviceInfo] = []
+    private var lastReload = Date.distantPast
 
     private var pollTask: Task<Void, Never>?
     private var pending: [String: LightState] = [:]
@@ -58,6 +61,19 @@ final class AppStore: ObservableObject {
             let all = try await client.allDevices()
             let found = all.filter(\.isLight)
             addable = all.filter { !$0.isLight && $0.isSwitchLike }.sorted { $0.name < $1.name }
+            lastReload = .now
+            // Spot devices added to Smart Life since last time (not on the very first load).
+            let knownKey = "knownDeviceIDs"
+            let known = Set(UserDefaults.standard.stringArray(forKey: knownKey) ?? [])
+            if !known.isEmpty {
+                let fresh = addable.filter { !known.contains($0.id) }
+                if !fresh.isEmpty { newSwitches = fresh }
+            } else {
+                // First time: ask about wall switches only (plugs are usually not lights).
+                let walls = addable.filter { ["kg", "tdq", "kgq"].contains($0.category) }
+                if !walls.isEmpty { newSwitches = walls }
+            }
+            UserDefaults.standard.set(all.map(\.id), forKey: knownKey)
             var list = LightStore.load()
             var newOnes: [Light] = []
             for info in found {
@@ -114,7 +130,21 @@ final class AppStore: ObservableObject {
         if on { set.insert(id) } else { set.remove(id) }
         DeviceInfo.included = set
         await reloadDevices()
-        show(on ? "Added. Send your lights to the bridge again to put it in Apple Home." : "Removed.")
+        // Put it on the bridge (Apple Home, Keystone) right away instead of asking.
+        let sent = await BridgeSync.pushIfChanged()
+        if on {
+            show(sent.map { $0.hasPrefix("Couldn't") ? "Added. The bridge gets it next time Afterglow is open at home." : "Added and sent to the bridge." } ?? "Added.")
+        } else {
+            show("Removed.")
+        }
+    }
+
+    /// Picks up devices added in Smart Life (at most every 5 minutes) and sends any change to the bridge.
+    func syncDevices(force: Bool = false) async {
+        if force || lights.isEmpty || Date().timeIntervalSince(lastReload) > 300 {
+            await reloadDevices()
+        }
+        if let r = await BridgeSync.pushIfChanged(), force { show(r) }
     }
 
     // MARK: Polling

@@ -25,8 +25,8 @@ struct AfterglowApp: App {
             switch newPhase {
             case .active:
                 store.startPolling()
-                if store.lights.isEmpty, store.token != nil { Task { await store.reloadDevices() } }
-                Task { await BridgeSync.pushIfChanged() }
+                if store.token != nil { Task { await store.syncDevices() } }
+                else { Task { await BridgeSync.pushIfChanged() } }
             case .background:
                 store.stopPolling()
                 Self.scheduleRefresh()
@@ -61,6 +61,24 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: store.token == nil)
+        // afterglow://sync (from Keystone): pick up new devices and send them to the bridge now.
+        .onOpenURL { url in
+            if url.host == "sync" { Task { await store.syncDevices(force: true) } }
+        }
+        .alert(store.newSwitches.first.map { "New in Smart Life: \($0.name)" } ?? "",
+               isPresented: Binding(get: { !store.newSwitches.isEmpty }, set: { _ in })) {
+            Button("It's a light, add it") {
+                if let d = store.newSwitches.first {
+                    store.newSwitches.removeFirst()
+                    Task { await store.include(d.id, true) }
+                }
+            }
+            Button("Not a light", role: .cancel) {
+                if !store.newSwitches.isEmpty { store.newSwitches.removeFirst() }
+            }
+        } message: {
+            Text("Is there a light on this switch or plug? Add it and it shows up in Afterglow, Keystone and Apple Home.")
+        }
         .alert("Something went wrong", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
             Button("OK", role: .cancel) {}
         } message: {
