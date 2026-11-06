@@ -163,7 +163,8 @@ struct SceneEditor: View {
                 }
 
                 Section {
-                    SceneAutomationRows(automation: $scene.automation, supportsFade: true)
+                    SceneAutomationRows(automation: $scene.automation, supportsFade: true,
+                                        hasLocationTrigger: scene.hasLocationTrigger)
                 } header: {
                     Text("Time, weather & light transitions")
                 } footer: {
