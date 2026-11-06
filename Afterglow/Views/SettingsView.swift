@@ -56,6 +56,10 @@ struct SettingsView: View {
                     HomeLocationRows()
                 }
 
+                Section("About") {
+                    LabeledContent("Installed version", value: "\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown") (build \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"))")
+                }
+
                 Section {
                     Button("Sign out of Smart Life", role: .destructive) {
                         store.signOut()
