@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.30",
+          "buildVersion": "30",
+          "date": "2026-11-06T04:35:40Z",
+          "localizedDescription": "- Add scene schedules, weather conditions and gradual brightness transitions (78d13f3)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-30/Afterglow-1.0.30-build-30.ipa",
+          "size": 1715654,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.29",
           "buildVersion": "29",
           "date": "2026-11-06T03:48:30Z",
@@ -234,22 +243,13 @@
           "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-6/Afterglow-1.0.6-build-6.ipa",
           "size": 1489354,
           "minOSVersion": "18.0"
-        },
-        {
-          "version": "1.0.0.5",
-          "buildVersion": "5",
-          "date": "2026-10-25T13:25:01Z",
-          "localizedDescription": "- Add favourite-light Lock Screen switches and brightness controls (0d14ea1)\n- Bridge: rename the sound bar app to Subwave (11b7b6a)\n- Bridge 1.1: switch the Vizio sound bar with the TV (for Undertow) (ca4ccad)",
-          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-5/Afterglow-1.0.0-build-5.ipa",
-          "size": 1489428,
-          "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.29",
-      "versionDate": "2026-11-06T03:48:30Z",
-      "versionDescription": "- Allow clearing Home and choosing per-scene map geofences (49a8aba)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-29/Afterglow-1.0.29-build-29.ipa",
-      "size": 1638104,
+      "version": "1.0.30",
+      "versionDate": "2026-11-06T04:35:40Z",
+      "versionDescription": "- Add scene schedules, weather conditions and gradual brightness transitions (78d13f3)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-30/Afterglow-1.0.30-build-30.ipa",
+      "size": 1715654,
       "appPermissions": {}
     }
   ],
