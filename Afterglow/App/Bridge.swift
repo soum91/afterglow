@@ -149,11 +149,40 @@ enum BridgeAPI {
         return obj["restart"] as? Bool ?? false
     }
 
+    /// Hand a gradual scene transition to Keystone so it keeps running if iOS suspends.
+    static func runFade(_ scene: LightScene, targets: [(Light, LightState)]) async throws {
+        let actions: [[String: Any]] = targets.compactMap { light, target in
+            guard let dps = light.localDPS(light.commands(for: target, force: true)), !dps.isEmpty else { return nil }
+            return ["id": light.id, "dps": dps.mapValues { $0.any }]
+        }
+        guard actions.count == targets.count else { throw BridgeError.message("Some lights are not on Keystone.") }
+        try await withRepair { cfg in
+            guard let url = self.url(cfg, "/api/run") else { throw BridgeError.message("Bad bridge address.") }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.timeoutInterval = 8
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(cfg.token, forHTTPHeaderField: "X-Afterglow-Token")
+            request.httpBody = try JSONSerialization.data(withJSONObject: [
+                "name": scene.name, "fade": scene.automation?.fadeSeconds ?? 0, "actions": actions
+            ])
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            if status == 401 { throw BridgeError.rejected }
+            guard status == 200 else {
+                throw BridgeError.message("Keystone declined the fade: \(String(decoding: data, as: UTF8.self))")
+            }
+        }
+    }
+
     // MARK: Building the config
 
     /// Everything the bridge needs, already in local data point form so the firmware doesn't need to know Tuya codes.
     static func config(lights: [Light], scenes: [LightScene], auto: Automations, tv: TVConfig) -> [String: Any] {
         let usable = lights.filter { $0.hasLocal && !$0.hidden }
+        let home = UserDefaults.standard.data(forKey: "geo.home").flatMap {
+            try? JSONDecoder().decode(SceneLocation.self, from: $0)
+        }
         var ls: [[String: Any]] = []
         for l in usable {
             var d: [String: Any] = ["id": l.id, "name": l.name, "key": l.localKey ?? "", "ip": l.host ?? "", "ver": l.version ?? 3.3]
@@ -176,8 +205,19 @@ enum BridgeAPI {
                 return ["id": l.id, "dps": dps.mapValues { $0.any }]
             }
         }
+        let scheduledScenes: [[String: Any]] = scenes.compactMap { scene in
+            guard let rule = scene.automation, rule.event != .none else { return nil }
+            let deviceActions = actions(scene.id, fallbackOff: false)
+            guard !deviceActions.isEmpty else { return nil }
+            var item = rule.bridgePayload(id: scene.id)
+            item["name"] = scene.name
+            item["actions"] = deviceActions
+            return item
+        }
         return [
             "utcOffset": TimeZone.current.secondsFromGMT(),
+            "weather": home.map { ["lat": $0.lat, "lon": $0.lon] } ?? [:],
+            "sceneRules": scheduledScenes,
             "lights": ls,
             "tv": ["ip": tv.host, "psk": tv.psk, "name": tv.name.isEmpty ? "TV" : tv.name,
                    "inputs": (tv.inputs ?? []).map { ["uri": $0.uri, "name": $0.name] }],
@@ -187,6 +227,24 @@ enum BridgeAPI {
                      "from": auto.tvOnFrom, "to": auto.tvOnTo, "actions": actions(auto.tvOnScene, fallbackOff: false)],
             "lateOff": ["enabled": auto.lateOffEnabled, "at": auto.lateOffAt],
         ]
+    }
+}
+
+@MainActor
+enum BridgeFadeHandoff {
+    static func start(_ scene: LightScene) async -> Bool {
+        guard (scene.automation?.fadeSeconds ?? 0) >= 10, BridgeConfig.stored.isSet else { return false }
+        let targets = scene.targets(LightStore.load())
+        guard !targets.isEmpty, targets.allSatisfy({ $0.0.hasLocal && !$0.0.hidden }) else { return false }
+        do { try await BridgeAPI.runFade(scene, targets: targets) }
+        catch { return false }
+        var saved = SceneStore.load()
+        if let index = saved.firstIndex(where: { $0.id == scene.id }) {
+            saved[index].lastRun = .now
+            SceneStore.save(saved)
+        }
+        Lights.reloadWidgets()
+        return true
     }
 }
 

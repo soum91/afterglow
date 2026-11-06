@@ -20,6 +20,7 @@ struct LightScene: Codable, Identifiable, Hashable {
     var onArrive: Bool? = nil
     var onLeave: Bool? = nil
     var triggerLocation: SceneLocation? = nil
+    var automation: SceneAutomation? = nil
     var lastRun: Date? = nil
 
     var hasLocationTrigger: Bool { onArrive == true || onLeave == true }
@@ -60,7 +61,13 @@ enum SceneEngine {
     static func run(_ scene: LightScene) async throws {
         let targets = scene.targets(LightStore.load())
         guard !targets.isEmpty else { throw TuyaError(message: "\(scene.name) has no lights in it.") }
-        let errors = await LightControl.shared.apply(targets)
+        let fadeSeconds = scene.automation?.fadeSeconds ?? 0
+        let errors: [String: Error]
+        if fadeSeconds >= 10 && targets.contains(where: { $0.0.canDim }) {
+            errors = await graduallyApply(targets, duration: fadeSeconds)
+        } else {
+            errors = await LightControl.shared.apply(targets)
+        }
         var list = SceneStore.load()
         if let i = list.firstIndex(where: { $0.id == scene.id }) {
             list[i].lastRun = .now
@@ -72,5 +79,35 @@ enum SceneEngine {
             let names = targets.filter { errors[$0.0.id] != nil }.map(\.0.name).joined(separator: ", ")
             throw TuyaError(message: "\(scene.name) ran, but \(names) didn't respond.")
         }
+    }
+
+    /// Foreground/manual fade. Scheduled fades are run by Keystone so they continue
+    /// if iOS suspends the app. Keep the command count low for Tuya bulbs.
+    private static func graduallyApply(_ targets: [(Light, LightState)], duration: Int) async -> [String: Error] {
+        let steps = max(2, min(30, duration / 3))
+        let pause = UInt64(Double(duration) / Double(steps) * 1_000_000_000)
+        var errors: [String: Error] = [:]
+        for step in 1...steps {
+            if Task.isCancelled { break }
+            let progress = Double(step) / Double(steps)
+            let latest = Dictionary(uniqueKeysWithValues: LightStore.load().map { ($0.id, $0) })
+            let intermediate = targets.map { original, target -> (Light, LightState) in
+                let light = latest[original.id] ?? original
+                guard light.canDim else { return (light, target) }
+                var state = target
+                if target.on {
+                    let start = original.isOn ? original.brightness : 0.01
+                    let end = target.brightness ?? (original.isOn ? original.brightness : 1)
+                    state.brightness = max(0.01, start + (end - start) * progress)
+                } else if step < steps && original.isOn {
+                    state.on = true
+                    state.brightness = max(0.01, original.brightness * (1 - progress))
+                }
+                return (light, state)
+            }
+            errors.merge(await LightControl.shared.apply(intermediate)) { _, newer in newer }
+            if step < steps { try? await Task.sleep(nanoseconds: pause) }
+        }
+        return errors
     }
 }

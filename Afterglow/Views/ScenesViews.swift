@@ -159,7 +159,15 @@ struct SceneEditor: View {
                 } header: {
                     Text("Run automatically")
                 } footer: {
-                    Text("Choose Home or a location on the map for this scene. iOS geofencing requires Always location access for background triggers. For schedules use Shortcuts › Automation › Time of Day › Afterglow \"Run Light Scene\". TV triggers are under Settings › TV & automations.")
+                    Text("Choose Home or a map location. Geofencing needs Always location access. Time, solar and weather rules run on a paired Keystone bridge; Shortcuts remains an alternative without one.")
+                }
+
+                Section {
+                    SceneAutomationRows(automation: $scene.automation, supportsFade: true)
+                } header: {
+                    Text("Time, weather & light transitions")
+                } footer: {
+                    Text("Keystone runs scheduled and environmental rules while the phone is closed. Sunset, last light and weather use your Home location.")
                 }
 
                 if !isNew {
@@ -177,7 +185,6 @@ struct SceneEditor: View {
                         if scene.name.trimmingCharacters(in: .whitespaces).isEmpty { scene.name = "Scene" }
                         store.saveScene(scene)
                         dismiss()
-                        Task { await BridgeSync.pushIfChanged() }
                     }
                     .fontWeight(.semibold)
                 }

@@ -25,6 +25,7 @@ final class Geo: NSObject, ObservableObject, CLLocationManagerDelegate {
                 UserDefaults.standard.removeObject(forKey: "geo.home")
             }
             sync()
+            Task { await BridgeSync.pushIfChanged() }
         }
     }
     @Published private(set) var auth: CLAuthorizationStatus
@@ -173,10 +174,13 @@ final class Geo: NSObject, ObservableObject, CLLocationManagerDelegate {
             UIApplication.shared.endBackgroundTask(bg)
         }
         Task { @MainActor in
+            let needsRoom = scenes.contains { $0.automation?.condition == .roomAbove || $0.automation?.condition == .roomBelow }
+            let indoorC = needsRoom ? (try? await BridgeAPI.info())?.govee?.temp : nil
             for s in scenes {
+                guard await SceneConditions.evaluate(s.automation, indoorC: indoorC) else { continue }
                 let what = arrive ? "Arrived at trigger location" : "Left trigger location"
                 do {
-                    try await SceneEngine.run(s)
+                    if !(await BridgeFadeHandoff.start(s)) { try await SceneEngine.run(s) }
                     note("\(what): ran \(s.name)")
                 } catch {
                     note("\(what): \(s.name) failed (\(error.localizedDescription))")

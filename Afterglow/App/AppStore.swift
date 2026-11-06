@@ -268,7 +268,7 @@ final class AppStore: ObservableObject {
             if let i = lights.firstIndex(where: { $0.id == l.id }) { lights[i] = lights[i].applying(l.commands(for: t)) }
         }
         do {
-            try await SceneEngine.run(scene)
+            if !(await BridgeFadeHandoff.start(scene)) { try await SceneEngine.run(scene) }
             Donate.scene(scene)
         } catch {
             show(error.localizedDescription)
@@ -312,6 +312,7 @@ final class AppStore: ObservableObject {
         Geo.shared.sync()
         Lights.reloadWidgets()
         AfterglowShortcuts.updateAppShortcutParameters()
+        Task { await BridgeSync.pushIfChanged() }
     }
 
     func deleteScene(_ s: LightScene) {
@@ -321,6 +322,7 @@ final class AppStore: ObservableObject {
         scenes = list
         Geo.shared.sync()
         AfterglowShortcuts.updateAppShortcutParameters()
+        Task { await BridgeSync.pushIfChanged() }
     }
 
     func moveScenes(_ list: [LightScene]) {
