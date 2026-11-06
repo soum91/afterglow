@@ -1,5 +1,12 @@
 import Foundation
 
+/// An optional scene-specific geofence. Existing scenes without one still use Home.
+struct SceneLocation: Codable, Hashable {
+    var lat: Double
+    var lon: Double
+    var radius: Double
+}
+
 /// A one-tap look for some or all lights, like Equinox's scenes: chips on the home screen,
 /// tap to run, long-press to edit, optional arrive/leave trigger.
 struct LightScene: Codable, Identifiable, Hashable {
@@ -12,6 +19,7 @@ struct LightScene: Codable, Identifiable, Hashable {
     var allState: LightState? = nil
     var onArrive: Bool? = nil
     var onLeave: Bool? = nil
+    var triggerLocation: SceneLocation? = nil
     var lastRun: Date? = nil
 
     var hasLocationTrigger: Bool { onArrive == true || onLeave == true }

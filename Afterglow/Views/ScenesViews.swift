@@ -149,17 +149,17 @@ struct SceneEditor: View {
                 }
 
                 Section {
-                    Toggle("When I arrive home", isOn: Binding(
+                    Toggle("When I arrive", isOn: Binding(
                         get: { scene.onArrive == true },
                         set: { scene.onArrive = $0 ? true : nil; if $0 { geo.requestAccess() } }))
-                    Toggle("When I leave home", isOn: Binding(
+                    Toggle("When I leave", isOn: Binding(
                         get: { scene.onLeave == true },
                         set: { scene.onLeave = $0 ? true : nil; if $0 { geo.requestAccess() } }))
-                    if scene.hasLocationTrigger { HomeLocationRows() }
+                    if scene.hasLocationTrigger { SceneTriggerLocationRows(location: $scene.triggerLocation) }
                 } header: {
                     Text("Run automatically")
                 } footer: {
-                    Text("Uses iOS geofencing, so it fires even when Afterglow is closed. Location access has to be Always. For times of day use Shortcuts › Automation › Time of Day › Run Immediately › Afterglow \"Run Light Scene\". TV triggers live on the Apple Home bridge (Settings › TV & automations).")
+                    Text("Choose Home or a location on the map for this scene. iOS geofencing requires Always location access for background triggers. For schedules use Shortcuts › Automation › Time of Day › Afterglow \"Run Light Scene\". TV triggers are under Settings › TV & automations.")
                 }
 
                 if !isNew {
@@ -249,9 +249,56 @@ struct StateEditor: View {
     }
 }
 
+struct SceneTriggerLocationRows: View {
+    @Binding var location: SceneLocation?
+    @ObservedObject private var geo = Geo.shared
+    @State private var showingMap = false
+
+    var body: some View {
+        if let custom = location {
+            LabeledContent("Trigger location", value: "Map pin")
+            Text(String(format: "%.4f, %.4f", custom.lat, custom.lon))
+                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            Picker("Trigger distance", selection: Binding(
+                get: { location?.radius ?? 300 },
+                set: { newRadius in
+                    guard var point = location else { return }
+                    point.radius = newRadius
+                    location = point
+                })) {
+                Text("150 m").tag(150.0)
+                Text("300 m").tag(300.0)
+                Text("500 m").tag(500.0)
+                Text("1 km").tag(1000.0)
+                Text("2 km").tag(2000.0)
+            }
+            Button("Use Home instead") { location = nil }
+        } else {
+            LabeledContent("Trigger location", value: "Home")
+            HomeLocationRows()
+            if geo.home == nil {
+                Text("Set Home or choose a map location to activate this trigger.")
+                    .font(.footnote).foregroundStyle(.orange)
+            }
+        }
+        Button("Choose scene location on map") { showingMap = true }
+            .sheet(isPresented: $showingMap) {
+                LocationMapPicker(initial: location.map {
+                    CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)
+                } ?? geo.home.map {
+                    CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)
+                }) { coordinate in
+                    location = SceneLocation(lat: coordinate.latitude, lon: coordinate.longitude,
+                                             radius: location?.radius ?? geo.home?.radius ?? 300)
+                }
+            }
+    }
+}
+
 struct HomeLocationRows: View {
     @ObservedObject private var geo = Geo.shared
     @State private var radius: Double = 300
+    @State private var showingHomeMap = false
 
     var body: some View {
         if geo.auth == .denied || geo.auth == .restricted || geo.auth == .authorizedWhenInUse {
@@ -285,6 +332,18 @@ struct HomeLocationRows: View {
                 Label(geo.home == nil ? "Set home to where I am now" : "Move home to where I am now", systemImage: "house.fill")
                 if geo.locating { Spacer(); ProgressView() }
             }
+        }
+        Button("Pick Home on map") { showingHomeMap = true }
+            .sheet(isPresented: $showingHomeMap) {
+                LocationMapPicker(initial: geo.home.map {
+                    CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)
+                }) { coordinate in
+                    geo.setHome(lat: coordinate.latitude, lon: coordinate.longitude,
+                                radius: geo.home?.radius ?? radius)
+                }
+            }
+        if geo.home != nil {
+            Button("Clear Home location", role: .destructive) { geo.clearHome() }
         }
         if let e = geo.lastEvent {
             Text("Last trigger: \(e)").font(.caption).foregroundStyle(.secondary)

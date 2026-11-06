@@ -52,6 +52,10 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Home location") {
+                    HomeLocationRows()
+                }
+
                 Section {
                     Button("Sign out of Smart Life", role: .destructive) {
                         store.signOut()
