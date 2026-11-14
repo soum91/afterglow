@@ -210,13 +210,16 @@ enum Lights {
     static func all() -> [Light] { LightStore.visible() }
     static func find(_ id: String) -> Light? { LightStore.load().first { $0.id == id } }
 
-    static func set(_ ids: [String]?, on: Bool) async throws {
+    /// Returns the names of lights that didn't answer (throws only if none did).
+    @discardableResult
+    static func set(_ ids: [String]?, on: Bool) async throws -> [String] {
         let pool = all()
         let targets = (ids.map { wanted in pool.filter { wanted.contains($0.id) } } ?? pool).filter { $0.powerCode != nil }
         guard !targets.isEmpty else { throw TuyaError(message: "No lights found. Open Afterglow first.") }
         let errors = await LightControl.shared.apply(targets.map { ($0, LightState(on: on)) }, force: true)
         reloadWidgets()
         if errors.count == targets.count, let e = errors.values.first { throw e }
+        return targets.filter { errors[$0.id] != nil }.map(\.name)
     }
 
     static func toggle(_ id: String?) async throws -> Bool {
