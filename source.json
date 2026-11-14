@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.34",
+          "buildVersion": "34",
+          "date": "2026-11-14T01:35:56Z",
+          "localizedDescription": "- Siri: Turn on/off <light> shortcuts (each light or All lights); lights on/off says which light didn't answer (239aa5d)\n- Enforce pseudonymous author metadata and owner privacy (66a68fa)\n- docs: require verified diagnostic exports [skip ci] (e427e4c)\n- docs: require verified diagnostic exports [skip ci] (6811014)\n- docs: require verified diagnostics Copy, Share and Files export [skip ci] (27f8555)\n- docs: require verified diagnostics Copy, Share and Files export [skip ci] (15a805b)\n- ci: separate release tracks when deriving factual changes [skip ci] (285a227)\n- ci: reconcile bot-created releases with factual notes [skip ci] (7cff83b)\n- ci: verify and record actual release changes [skip ci] (47a7804)\n- docs: require evidence-based release changelog [skip ci] (727e951)\n- docs: initialize factual release changelog [skip ci] (1616259)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-34/Afterglow-1.0.34-build-34.ipa",
+          "size": 1716147,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.33",
           "buildVersion": "33",
           "date": "2026-11-06T20:56:05Z",
@@ -234,22 +243,13 @@
           "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-10/Afterglow-1.0.10-build-10.ipa",
           "size": 1493274,
           "minOSVersion": "18.0"
-        },
-        {
-          "version": "1.0.9",
-          "buildVersion": "9",
-          "date": "2026-10-26T05:25:43Z",
-          "localizedDescription": "- Fix Control Center light action using direct toggle intent (c8843b2)",
-          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-9/Afterglow-1.0.9-build-9.ipa",
-          "size": 1485350,
-          "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.33",
-      "versionDate": "2026-11-06T20:56:05Z",
-      "versionDescription": "- Enforce visible installed version/build across app releases (3132364)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-33/Afterglow-1.0.33-build-33.ipa",
-      "size": 1715617,
+      "version": "1.0.34",
+      "versionDate": "2026-11-14T01:35:56Z",
+      "versionDescription": "- Siri: Turn on/off <light> shortcuts (each light or All lights); lights on/off says which light didn't answer (239aa5d)\n- Enforce pseudonymous author metadata and owner privacy (66a68fa)\n- docs: require verified diagnostic exports [skip ci] (e427e4c)\n- docs: require verified diagnostic exports [skip ci] (6811014)\n- docs: require verified diagnostics Copy, Share and Files export [skip ci] (27f8555)\n- docs: require verified diagnostics Copy, Share and Files export [skip ci] (15a805b)\n- ci: separate release tracks when deriving factual changes [skip ci] (285a227)\n- ci: reconcile bot-created releases with factual notes [skip ci] (7cff83b)\n- ci: verify and record actual release changes [skip ci] (47a7804)\n- docs: require evidence-based release changelog [skip ci] (727e951)\n- docs: initialize factual release changelog [skip ci] (1616259)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-34/Afterglow-1.0.34-build-34.ipa",
+      "size": 1716147,
       "appPermissions": {}
     }
   ],
