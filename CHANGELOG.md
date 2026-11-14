@@ -1,5 +1,13 @@
 # Changelog
 
+## [build-37] - 2026-11-14
+
+## Verified changes since build-36
+
+- Bridge payload: mark plain relays and plugs as kind=switch so Apple Home shows a switch, not a bulb ([`78d773ef`](https://github.com/soum91/afterglow/commit/78d773ef71847c8531ba05115c60a6720d9314b8); `Afterglow/App/Bridge.swift`)
+
+[Inspect exact code changes](https://github.com/soum91/afterglow/compare/build-36...build-37)
+
 ## [build-36] - 2026-11-14
 
 ## Verified changes since build-34
