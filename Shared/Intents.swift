@@ -72,7 +72,7 @@ struct AllLightsOffIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let failed = try await Lights.set(nil, on: false)
-        return .result(dialog: failed.isEmpty ? "Lights off." : "Lights off, except \(failed.joined(separator: ", ")): it didn't answer.")
+        return .result(dialog: IntentDialog(stringLiteral: failed.isEmpty ? "Lights off." : "Lights off, except \(failed.joined(separator: ", ")): it didn't answer."))
     }
 }
 
@@ -87,7 +87,7 @@ struct AllLightsOnIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let failed = try await Lights.set(nil, on: true)
-        return .result(dialog: failed.isEmpty ? "Lights on." : "Lights on, except \(failed.joined(separator: ", ")): it didn't answer.")
+        return .result(dialog: IntentDialog(stringLiteral: failed.isEmpty ? "Lights on." : "Lights on, except \(failed.joined(separator: ", ")): it didn't answer."))
     }
 }
 
@@ -109,7 +109,7 @@ struct TurnLightOnIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let failed = try await Lights.set(light.isAll ? nil : [light.id], on: true)
-        return .result(dialog: failed.isEmpty ? "\(light.name) on." : "On, except \(failed.joined(separator: ", ")): it didn't answer.")
+        return .result(dialog: IntentDialog(stringLiteral: failed.isEmpty ? "\(light.name) on." : "On, except \(failed.joined(separator: ", ")): it didn't answer."))
     }
 }
 
@@ -130,7 +130,7 @@ struct TurnLightOffIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let failed = try await Lights.set(light.isAll ? nil : [light.id], on: false)
-        return .result(dialog: failed.isEmpty ? "\(light.name) off." : "Off, except \(failed.joined(separator: ", ")): it didn't answer.")
+        return .result(dialog: IntentDialog(stringLiteral: failed.isEmpty ? "\(light.name) off." : "Off, except \(failed.joined(separator: ", ")): it didn't answer."))
     }
 }
 
