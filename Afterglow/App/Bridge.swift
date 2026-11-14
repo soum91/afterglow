@@ -195,6 +195,8 @@ enum BridgeAPI {
                 d["ct"] = dp; d["ctMin"] = Int(l.tempRange.lowerBound); d["ctMax"] = Int(l.tempRange.upperBound)
             }
             if let c = l.colourCode, let dp = l.dpID(for: c) { d["col"] = dp; d["colV1"] = l.isV1 || c == "colour_data" }
+            // A plain relay or plug (nothing to dim or colour) is a Switch in Apple Home, not a bulb.
+            if d["bri"] == nil, d["ct"] == nil, d["col"] == nil, !DeviceInfo.lightCategories.contains(l.info.category) { d["kind"] = "switch" }
             if d["sw"] != nil { ls.append(d) }
         }
         func actions(_ sceneID: String?, fallbackOff: Bool) -> [[String: Any]] {
