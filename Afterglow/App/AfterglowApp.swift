@@ -103,6 +103,16 @@ struct AfterglowShortcuts: AppShortcutsProvider {
             "Turn on the lights in \(.applicationName)",
             "\(.applicationName) lights on",
         ], shortTitle: "Lights On", systemImageName: "lightbulb.fill")
+        AppShortcut(intent: TurnLightOnIntent(), phrases: [
+            "Turn on \(\.$light) in \(.applicationName)",
+            "\(.applicationName) \(\.$light) on",
+            "Switch on \(\.$light) with \(.applicationName)",
+        ], shortTitle: "Turn Light On", systemImageName: "lightbulb.max")
+        AppShortcut(intent: TurnLightOffIntent(), phrases: [
+            "Turn off \(\.$light) in \(.applicationName)",
+            "\(.applicationName) \(\.$light) off",
+            "Switch off \(\.$light) with \(.applicationName)",
+        ], shortTitle: "Turn Light Off", systemImageName: "lightbulb")
         AppShortcut(intent: RunSceneIntent(), phrases: [
             "Run \(\.$scene) in \(.applicationName)",
             "Set \(.applicationName) to \(\.$scene)",

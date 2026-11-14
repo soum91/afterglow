@@ -71,8 +71,8 @@ struct AllLightsOffIntent: AppIntent {
     static var description = IntentDescription("Turns every light in Afterglow off.")
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        try await Lights.set(nil, on: false)
-        return .result(dialog: "Lights off.")
+        let failed = try await Lights.set(nil, on: false)
+        return .result(dialog: failed.isEmpty ? "Lights off." : "Lights off, except \(failed.joined(separator: ", ")): it didn't answer.")
     }
 }
 
@@ -86,8 +86,51 @@ struct AllLightsOnIntent: AppIntent {
     static var description = IntentDescription("Turns every light in Afterglow on.")
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        try await Lights.set(nil, on: true)
-        return .result(dialog: "Lights on.")
+        let failed = try await Lights.set(nil, on: true)
+        return .result(dialog: failed.isEmpty ? "Lights on." : "Lights on, except \(failed.joined(separator: ", ")): it didn't answer.")
+    }
+}
+
+/// "Turn on Light 1 in Afterglow" (or "All lights"). Siri fills the light from your light names.
+struct TurnLightOnIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    static let isDiscoverable = false
+    #endif
+    static var title: LocalizedStringResource = "Turn Light On"
+    static var description = IntentDescription("Turns one light, or all lights, on.")
+
+    @Parameter(title: "Light")
+    var light: LightEntity
+
+    init() {}
+    init(light: LightEntity) { self.light = light }
+
+    static var parameterSummary: some ParameterSummary { Summary("Turn on \(\.$light)") }
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let failed = try await Lights.set(light.isAll ? nil : [light.id], on: true)
+        return .result(dialog: failed.isEmpty ? "\(light.name) on." : "On, except \(failed.joined(separator: ", ")): it didn't answer.")
+    }
+}
+
+struct TurnLightOffIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    static let isDiscoverable = false
+    #endif
+    static var title: LocalizedStringResource = "Turn Light Off"
+    static var description = IntentDescription("Turns one light, or all lights, off.")
+
+    @Parameter(title: "Light")
+    var light: LightEntity
+
+    init() {}
+    init(light: LightEntity) { self.light = light }
+
+    static var parameterSummary: some ParameterSummary { Summary("Turn off \(\.$light)") }
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let failed = try await Lights.set(light.isAll ? nil : [light.id], on: false)
+        return .result(dialog: failed.isEmpty ? "\(light.name) off." : "Off, except \(failed.joined(separator: ", ")): it didn't answer.")
     }
 }
 
