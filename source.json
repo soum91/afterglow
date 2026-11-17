@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.38",
+          "buildVersion": "38",
+          "date": "2026-11-17T22:44:26Z",
+          "localizedDescription": "- Switches: say why a device can't go to the bridge instead of claiming it was sent (c7f4255)\n- docs: record factual changes for build-37 [skip ci] (896043e)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-38/Afterglow-1.0.38-build-38.ipa",
+          "size": 1730333,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.37",
           "buildVersion": "37",
           "date": "2026-11-14T22:23:40Z",
@@ -234,22 +243,13 @@
           "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-13/Afterglow-1.0.13-build-13.ipa",
           "size": 1505075,
           "minOSVersion": "18.0"
-        },
-        {
-          "version": "1.0.12",
-          "buildVersion": "12",
-          "date": "2026-10-27T01:48:01Z",
-          "localizedDescription": "- Add a read-only Lock Screen status widget (9f59c9d)",
-          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-12/Afterglow-1.0.12-build-12.ipa",
-          "size": 1505233,
-          "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.37",
-      "versionDate": "2026-11-14T22:23:40Z",
-      "versionDescription": "- Bridge payload: mark plain relays and plugs as kind=switch so Apple Home shows a switch, not a bulb (78d773e)\n- docs: record factual changes for build-36 [skip ci] (33fc528)\n- docs: record factual changes for build-34 [skip ci] (3f1a43b)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-37/Afterglow-1.0.37-build-37.ipa",
-      "size": 1727799,
+      "version": "1.0.38",
+      "versionDate": "2026-11-17T22:44:26Z",
+      "versionDescription": "- Switches: say why a device can't go to the bridge instead of claiming it was sent (c7f4255)\n- docs: record factual changes for build-37 [skip ci] (896043e)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-38/Afterglow-1.0.38-build-38.ipa",
+      "size": 1730333,
       "appPermissions": {}
     }
   ],
