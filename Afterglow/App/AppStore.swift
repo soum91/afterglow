@@ -130,13 +130,30 @@ final class AppStore: ObservableObject {
         if on { set.insert(id) } else { set.remove(id) }
         DeviceInfo.included = set
         await reloadDevices()
-        // Put it on the bridge (Apple Home, Keystone) right away instead of asking.
-        let sent = await BridgeSync.pushIfChanged()
-        if on {
-            show(sent.map { $0.hasPrefix("Couldn't") ? "Added. The bridge gets it next time Afterglow is open at home." : "Added and sent to the bridge." } ?? "Added.")
-        } else {
-            show("Removed.")
+        guard on else { _ = await BridgeSync.pushIfChanged(); show("Removed."); return }
+        // The bridge only talks to devices on the Wi-Fi, so find this one first, then send.
+        if let l = lights.first(where: { $0.id == id }), !l.hasLocal, LocalScan.wifiAddress() != nil {
+            await findOnWiFi(quiet: true)
         }
+        let sent = await BridgeSync.pushIfChanged()
+        guard let l = lights.first(where: { $0.id == id }) else { show("Added."); return }
+        if let why = bridgeProblem(l) {
+            show("Added in Afterglow, through the cloud. Not on the bridge: \(why)")
+        } else {
+            show(sent.map { $0.hasPrefix("Couldn't") ? "Added. The bridge gets it next time Afterglow is open at home." : "Added and sent to the bridge." } ?? "Added and on the bridge.")
+        }
+    }
+
+    /// Why a device can't go to the bridge (Apple Home, Keystone), or nil if it can.
+    func bridgeProblem(_ l: Light) -> String? {
+        if (l.localKey ?? "").isEmpty {
+            return "Tuya doesn't give out a local key for it, so only the cloud can control it. Matter switches are often like this: add it to Apple Home with its Matter code instead."
+        }
+        if (l.host ?? "").isEmpty {
+            return "it never answered Tuya's local protocol on your Wi-Fi (port 6668). Matter switches often don't: add it to Apple Home with its Matter code instead. If it does have an address, type it under the light in Settings."
+        }
+        if l.powerCode == nil { return "Afterglow can't find its on/off control." }
+        return nil
     }
 
     /// Picks up devices added in Smart Life (at most every 5 minutes) and sends any change to the bridge.

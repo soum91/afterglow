@@ -232,7 +232,14 @@ struct AddDevicesView: View {
                 Section("Added by hand") {
                     ForEach(added) { l in
                         HStack {
-                            Text(l.name)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(l.name)
+                                if let why = store.bridgeProblem(l) {
+                                    Text("Cloud only, not on the bridge: \(why)").font(.caption).foregroundStyle(.secondary)
+                                } else {
+                                    Text("On Wi-Fi at \(l.host ?? "") · goes to the bridge").font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
                             Spacer()
                             Button("Remove", role: .destructive) { Task { await store.include(l.id, false) } }
                                 .buttonStyle(.bordered)
