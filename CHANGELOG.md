@@ -1,5 +1,13 @@
 # Changelog
 
+## [build-38] - 2026-11-17
+
+## Verified changes since build-37
+
+- Switches: say why a device can't go to the bridge instead of claiming it was sent ([`c7f4255f`](https://github.com/soum91/afterglow/commit/c7f4255facbe23eb816056ceb40bfcf4fa448d65); `Afterglow/App/AppStore.swift`, `Afterglow/Views/SettingsView.swift`)
+
+[Inspect exact code changes](https://github.com/soum91/afterglow/compare/build-37...build-38)
+
 ## [build-37] - 2026-11-14
 
 ## Verified changes since build-36
