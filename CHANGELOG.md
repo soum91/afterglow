@@ -1,5 +1,13 @@
 # Changelog
 
+## [build-47] - 2026-11-23
+
+## Verified changes since build-46
+
+- Add Siri RGB colours, Kelvin white temperature and brightness intents with safe light selection ([`89bc1d6a`](https://github.com/soum91/afterglow/commit/89bc1d6a84b54a350c7b5380cd8d003f83579aa4); `Afterglow/App/AfterglowApp.swift`, `README.md`, `Shared/Intents.swift`, and 2 more)
+
+[Inspect exact code changes](https://github.com/soum91/afterglow/compare/build-46...build-47)
+
 ## [build-46] - 2026-11-23
 
 ## Verified changes since build-42
