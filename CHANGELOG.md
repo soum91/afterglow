@@ -1,5 +1,16 @@
 # Changelog
 
+## [build-51] - 2026-11-23
+
+## Verified changes since build-47
+
+- Fix SwiftUI Section header for rename settings in Xcode 16.4 ([`de75b7ae`](https://github.com/soum91/afterglow/commit/de75b7ae20725853cddc2c4f0f260033883606e8); `Afterglow/Views/SettingsView.swift`)
+- Add Home layout editor and native Keystone/Surge status cards from bridge data ([`eb1ff6c1`](https://github.com/soum91/afterglow/commit/eb1ff6c167bda36efdd2402386294f0417da946e); `Afterglow/App/Bridge.swift`, `Afterglow/Views/HomeCustomization.swift`)
+- Add editable responsive Home grid with resizable, movable device cards ([`1f5b3cad`](https://github.com/soum91/afterglow/commit/1f5b3cad29656dc593b4ee4a7a28ab22b69bdf0a); `Afterglow/Views/HomeView.swift`)
+- Add user-defined device names for Siri and persist per-card sizes and order ([`e8a73d53`](https://github.com/soum91/afterglow/commit/e8a73d539c77cbaa224e62c302290aac77bedf9d); `Afterglow/App/AppStore.swift`, `Afterglow/Views/SettingsView.swift`, `README.md`, and 2 more)
+
+[Inspect exact code changes](https://github.com/soum91/afterglow/compare/build-47...build-51)
+
 ## [build-47] - 2026-11-23
 
 ## Verified changes since build-46
