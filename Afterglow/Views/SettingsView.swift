@@ -167,7 +167,7 @@ struct LightSettingsView: View {
                 } header: { Text("Appearance") } footer: {
                     Text("Changes the icon in Afterglow. Apple Home's accessory category comes from the Keystone bridge and is configured separately.")
                 }
-                Section("Bulk actions") {
+                Section {
                     Toggle("Include in All Lights and bulk scenes", isOn: Binding(
                         get: { l.belongsToAllLights },
                         set: { flag in
@@ -175,6 +175,8 @@ struct LightSettingsView: View {
                             Task { await BridgeSync.pushIfChanged(force: true) }
                         }
                     ))
+                } header: {
+                    Text("Bulk actions")
                 } footer: {
                     Text("Off keeps this device controllable individually but protects it from All On, All Off, Siri's All Lights commands, default light scenes, and TV/bedtime light automations.")
                 }
