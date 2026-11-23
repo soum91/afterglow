@@ -1,5 +1,13 @@
 # Changelog
 
+## [build-39] - 2026-11-23
+
+## Verified changes since build-38
+
+- Open Tuya Smart instead of Smart Life during Afterglow QR sign-in ([`6708c3fe`](https://github.com/soum91/afterglow/commit/6708c3fed18902a7606c1c499930c4f44a90445a); `Afterglow/Views/LoginView.swift`, `README.md`)
+
+[Inspect exact code changes](https://github.com/soum91/afterglow/compare/build-38...build-39)
+
 ## [build-38] - 2026-11-17
 
 ## Verified changes since build-37
