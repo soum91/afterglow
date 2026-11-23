@@ -27,7 +27,7 @@ The TV is read with Sony's Bravia REST API (`getPowerStatus`). On the TV: Settin
 ## Setup
 
 1. Sideload the IPA from [Releases](https://github.com/soum91/afterglow/releases) (AltStore, SideStore or Sideloadly, keep app extensions on).
-2. Sign in: Smart Life › Me › ⚙︎ › Account and Security › User Code, paste it, save the QR, scan it from Smart Life's scanner.
+2. Sign in: Tuya Smart › Me › ⚙︎ › Account and Security › User Code, paste it, save the QR, scan it from Tuya Smart's scanner. The login screen opens Tuya Smart directly; if it is not installed, it opens the official App Store listing.
 3. Afterglow lists your lights and searches your Wi-Fi for them. Settings › Find lights on Wi-Fi runs it again; give the lights fixed IPs in your router so they stay found.
 4. Optional: Settings › Apple Home bridge, then Settings › TV & automations.
 

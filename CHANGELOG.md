@@ -35,3 +35,6 @@
 
 This log records verified, release-specific changes. The [Factual release changelog](.github/workflows/release-changelog.yml) GitHub Action adds entries based on the actual commits between published releases. Entries are not fabricated for older versions that have not been audited.
 
+
+## Unreleased
+- Sign-in QR flow now opens **Tuya Smart** (`tuyaSmart://`) rather than Smart Life, with an App Store fallback. Login instructions and QR share label use Tuya Smart; the underlying Tuya Home Assistant QR auth protocol is unchanged.

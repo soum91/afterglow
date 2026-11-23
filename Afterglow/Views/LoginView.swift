@@ -22,7 +22,7 @@ struct LoginView: View {
                             .font(.system(size: 34, weight: .semibold))
                             .foregroundStyle(Theme.accent)
                         Text("Afterglow").font(.system(size: 38, weight: .bold, design: .rounded))
-                        Text("Sign in with your Smart Life account. After that, lights you can reach on Wi-Fi are controlled directly.")
+                        Text("Sign in with your Tuya Smart account. After that, lights you can reach on Wi-Fi are controlled directly.")
                             .foregroundStyle(.secondary)
                     }
                     .padding(.top, 40)
@@ -45,7 +45,7 @@ struct LoginView: View {
 
     private var codeStep: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("1. In Smart Life, go to **Me › ⚙︎ Settings › Account and Security › User Code** and copy it.")
+            Text("1. In Tuya Smart, go to **Me › ⚙︎ Settings › Account and Security › User Code** and copy it.")
             Text("2. Paste it here.")
             TextField("User code", text: $userCode)
                 .textInputAutocapitalization(.never)
@@ -74,7 +74,7 @@ struct LoginView: View {
 
     private func qrStep(_ image: UIImage) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Scan this in Smart Life").font(.headline)
+            Text("Scan this in Tuya Smart").font(.headline)
             Image(uiImage: image)
                 .interpolation(.none)
                 .resizable()
@@ -93,7 +93,7 @@ struct LoginView: View {
                         .frame(maxWidth: .infinity).padding(.vertical, 12)
                         .background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
                 }
-                ShareLink(item: Image(uiImage: image), preview: SharePreview("Smart Life login", image: Image(uiImage: image))) {
+                ShareLink(item: Image(uiImage: image), preview: SharePreview("Tuya Smart login", image: Image(uiImage: image))) {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .frame(maxWidth: .infinity).padding(.vertical, 12)
                         .background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
@@ -101,23 +101,30 @@ struct LoginView: View {
             }
             .foregroundStyle(.white)
 
-            Text("On this phone: save it, then open Smart Life, tap **+** › **Scan**, tap the photo icon and pick the QR. Confirm the login and come back here. If you have a second phone or tablet with Smart Life, just scan the screen.")
+            Text("On this phone: save it, then open Tuya Smart, tap **+** › **Scan**, tap the photo icon and pick the QR. Confirm the login and come back here. If you have a second phone or tablet with Tuya Smart, just scan the screen.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
-            if let url = URL(string: "smartlife://") {
-                Link(destination: url) {
-                    Label("Open Smart Life", systemImage: "arrow.up.forward.app")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(Theme.accent, in: RoundedRectangle(cornerRadius: 14))
-                        .foregroundStyle(.black)
+            Button {
+                // Tuya Smart uses tuyaSmart:// (not Smart Life's smartlife://).
+                // Don't require canOpenURL: iOS restricts it without LSApplicationQueriesSchemes.
+                guard let app = URL(string: "tuyaSmart://") else { return }
+                UIApplication.shared.open(app, options: [:]) { opened in
+                    if !opened, let storeURL = URL(string: "https://apps.apple.com/ca/app/id1034649547") {
+                        UIApplication.shared.open(storeURL)
+                    }
                 }
+            } label: {
+                Label("Open Tuya Smart", systemImage: "arrow.up.forward.app")
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Theme.accent, in: RoundedRectangle(cornerRadius: 14))
+                    .foregroundStyle(.black)
             }
 
             HStack {
                 ProgressView().controlSize(.small)
-                Text("Waiting for you to confirm in Smart Life…").font(.footnote).foregroundStyle(.secondary)
+                Text("Waiting for you to confirm in Tuya Smart…").font(.footnote).foregroundStyle(.secondary)
                 Spacer()
                 Button("Start over") { reset() }.font(.footnote)
             }
