@@ -284,9 +284,9 @@ struct AddDevicesView: View {
                     }
                 }
             } header: {
-                Text("On your Smart Life account")
+                Text("Available on Tuya Smart")
             } footer: {
-                Text("For a light wired to a smart switch or plugged into a smart plug. Once added it works like your other lights: on/off, scenes, widgets, Siri, the TV trigger and the Apple Home bridge (send the lights to the bridge again afterwards).")
+                Text("Added devices stay individually controllable. Plugs, power strips and switches are excluded from All Lights, Siri bulk commands and bedtime scenes unless you explicitly enable them in the device's Bulk actions settings.")
             }
 
             let added = store.lights.filter { DeviceInfo.included.contains($0.id) }
@@ -309,7 +309,6 @@ struct AddDevicesView: View {
                     }
                 }
             }
-        }
             if !store.removedDevices.isEmpty {
                 Section("Removed devices") {
                     ForEach(store.removedDevices) { d in
@@ -325,6 +324,7 @@ struct AddDevicesView: View {
                     }
                 }
             }
+        }
         .navigationTitle("Add / remove devices")
         .refreshable { await store.reloadDevices() }
         .task { if store.addable.isEmpty { await store.reloadDevices() } }
