@@ -62,7 +62,15 @@ struct BridgeInfo: Decodable {
     var ir: IR?
     var govee: Govee?
     var tvTile: TVTile?
+    var strip: Strip?
 
+    struct Strip: Decodable {
+        struct Outlet: Decodable { var name: String; var dp: String; var on: Bool? }
+        var configured: Bool?
+        var name: String?
+        var ok: Bool?
+        var outlets: [Outlet]?
+    }
     struct Purifier: Decodable { var paired: Bool?; var configured: Bool?; var name: String?; var ok: Bool?; var on: Bool?; var pm25: Double?; var speed: Int? }
     struct IR: Decodable { struct R: Decodable { var name: String; var buttons: Int? }; var paired: Bool?; var remotes: [R]? }
     struct Govee: Decodable { var locked: Bool?; var name: String?; var temp: Double?; var humidity: Double?; var battery: Int? }
