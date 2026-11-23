@@ -41,23 +41,27 @@ final class AppStore: ObservableObject {
     func signedIn(_ t: TuyaToken) async {
         TokenStore.save(t)
         token = t
+        await TuyaClientPool.shared.reset()
         await reloadDevices()
     }
 
     func signOut() {
         TokenStore.clear()
         token = nil
-        Task { await LightControl.shared.dropAll() }
+        Task {
+            await TuyaClientPool.shared.reset()
+            await LightControl.shared.dropAll()
+        }
     }
 
     // MARK: Devices
 
     func reloadDevices() async {
-        guard let t = token ?? TokenStore.load() else { return }
+        guard let t = TokenStore.load() ?? token else { return }
         loading = true
         defer { loading = false }
-        let client = TuyaClient(token: t)
         do {
+            let client = await TuyaClientPool.shared.client(token: t)
             let all = try await client.allDevices()
             let found = all.filter(\.isLight)
             addable = all.filter { !$0.isLight && $0.isSwitchLike }.sorted { $0.name < $1.name }
@@ -117,8 +121,10 @@ final class AppStore: ObservableObject {
                 Task { await findOnWiFi(quiet: true) }
             }
         } catch let e as TuyaError where e.isAuth {
-            error = e.message
-            signOut()
+            // An expired/invalid cloud token must never delete the saved credentials,
+            // Wi-Fi pairings or local light configuration. Allow explicit reauthorization.
+            token = TokenStore.load() ?? token
+            error = "Tuya Smart authorization needs renewal: \(e.message). Open Settings → Reconnect Tuya Smart. Your devices remain saved."
         } catch {
             self.error = error.localizedDescription
         }
@@ -200,8 +206,8 @@ final class AppStore: ObservableObject {
                 missing.append(l.id)
             }
         }
-        guard cloud, !missing.isEmpty, let t = token else { return }
-        if let infos = try? await TuyaClient(token: t).devices(ids: missing) {
+        guard cloud, !missing.isEmpty, let t = TokenStore.load() ?? token else { return }
+        if let infos = try? await (await TuyaClientPool.shared.client(token: t)).devices(ids: missing) {
             for info in infos where !sending.contains(info.id) && pending[info.id] == nil {
                 merge(info.id, info.status, online: info.online)
                 if routes[info.id] == nil || routes[info.id] == .local { routes[info.id] = .cloud }
@@ -275,8 +281,18 @@ final class AppStore: ObservableObject {
     }
 
     func setAll(on: Bool) {
-        for l in visible where l.isOn != on && l.powerCode != nil { set(l, LightState(on: on)) }
-        if on { Donate.lightsOn() } else { Donate.lightsOff() }
+        Task {
+            do {
+                let failed = try await Lights.set(nil, on: on)
+                lights = mergedWithStore()
+                if !failed.isEmpty {
+                    show("Could not switch: \(failed.joined(separator: ", ")). Check Tuya Smart authorization and Wi-Fi.")
+                } else {
+                    show("Sent \(on ? "on" : "off") to \(Lights.all().filter { $0.powerCode != nil }.count) devices.")
+                }
+                if on { Donate.lightsOn() } else { Donate.lightsOff() }
+            } catch { show(error.localizedDescription) }
+        }
     }
 
     func run(_ scene: LightScene) async {

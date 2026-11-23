@@ -57,7 +57,7 @@ actor LightControl {
             throw localError ?? TuyaError(message: "Open Afterglow and sign in first.")
         }
         do {
-            try await TuyaClient(token: token).send(id: light.id, cmds)
+            try await (await TuyaClientPool.shared.client(token: token)).send(id: light.id, cmds)
         } catch {
             if let localError { throw TuyaError(message: "Wi-Fi: \(localError.localizedDescription) Cloud: \(error.localizedDescription)") }
             throw error
@@ -69,21 +69,14 @@ actor LightControl {
 
     /// Runs one target per light at the same time.
     func apply(_ targets: [(Light, LightState)], force: Bool = false) async -> [String: Error] {
-        await withTaskGroup(of: (String, Error?).self) { group in
-            for (light, target) in targets {
-                group.addTask {
-                    do {
-                        try await self.apply(target, to: light, force: force)
-                        return (light.id, nil)
-                    } catch {
-                        return (light.id, error)
-                    }
-                }
-            }
-            var errors: [String: Error] = [:]
-            for await (id, err) in group { if let err { errors[id] = err } }
-            return errors
+        // Serialize commands to the Tuya cloud. Sending every socket/light at once
+        // can race token rotation and trigger rate limits, leaving only one controlled.
+        var errors: [String: Error] = [:]
+        for (light, target) in targets {
+            do { try await apply(target, to: light, force: force) }
+            catch { errors[light.id] = error }
         }
+        return errors
     }
 
     // MARK: Status
@@ -257,7 +250,7 @@ enum Lights {
             }
         }
         if !missing.isEmpty, let token = TokenStore.load() {
-            let client = TuyaClient(token: token)
+            let client = await TuyaClientPool.shared.client(token: token)
             if let infos = try? await client.devices(ids: missing) {
                 for info in infos {
                     if let i = list.firstIndex(where: { $0.id == info.id }) {

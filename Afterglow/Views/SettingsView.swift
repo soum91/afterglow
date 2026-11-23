@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) private var dismiss
+    @State private var reconnecting = false
 
     var body: some View {
         NavigationStack {
@@ -60,8 +61,17 @@ struct SettingsView: View {
                     LabeledContent("Installed version", value: "\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown") (build \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"))")
                 }
 
+                Section("Tuya Smart authorization") {
+                    Button {
+                        reconnecting = true
+                    } label: {
+                        Label("Reconnect Tuya Smart", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    Text("Uses a rotating Tuya cloud access token, not Safari cookies. Reconnecting doesn't erase your saved local device settings.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Section {
-                    Button("Sign out of Smart Life", role: .destructive) {
+                    Button("Sign out of Tuya Smart", role: .destructive) {
                         store.signOut()
                         dismiss()
                     }
@@ -76,6 +86,12 @@ struct SettingsView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $reconnecting) {
+            LoginView().environmentObject(store)
+                .onChange(of: store.token?.refreshToken) { _, new in
+                    if new != nil { reconnecting = false }
+                }
+        }
     }
 }
 
@@ -91,7 +107,7 @@ struct LightsManageView: View {
                         LightSettingsView(lightID: l.id)
                     } label: {
                         HStack {
-                            Image(systemName: l.hidden ? "eye.slash" : "lightbulb.fill")
+                            Image(systemName: l.hidden ? "eye.slash" : l.iconName)
                                 .foregroundStyle(l.hidden ? Color.secondary : l.tint)
                             VStack(alignment: .leading) {
                                 Text(l.name)
@@ -131,6 +147,23 @@ struct LightSettingsView: View {
                     Toggle("Show in Afterglow", isOn: Binding(get: { !l.hidden }, set: { v in store.updateLight(l.id) { $0.hidden = !v } }))
                 } footer: {
                     Text("Hidden lights stay out of the grid, widgets, \"all lights\" and the Apple Home bridge.")
+                }
+                Section {
+                    Picker("Device icon", selection: Binding(
+                        get: { l.customIcon ?? "" },
+                        set: { symbol in store.updateLight(l.id) { $0.customIcon = symbol.isEmpty ? nil : symbol } }
+                    )) {
+                        Label("Automatic", systemImage: "wand.and.stars").tag("")
+                        Label("Light bulb", systemImage: "lightbulb.fill").tag("lightbulb.fill")
+                        Label("Ceiling light", systemImage: "light.ceiling.fill").tag("light.ceiling.fill")
+                        Label("Power strip", systemImage: "poweroutlet.strip.fill").tag("poweroutlet.strip.fill")
+                        Label("Power outlet", systemImage: "poweroutlet.type.b").tag("poweroutlet.type.b")
+                        Label("Smart switch", systemImage: "switch.2").tag("switch.2")
+                        Label("Lamp", systemImage: "lamp.desk.fill").tag("lamp.desk.fill")
+                        Label("Fan", systemImage: "fan.fill").tag("fan.fill")
+                    }
+                } header: { Text("Appearance") } footer: {
+                    Text("Changes the icon in Afterglow. Apple Home's accessory category comes from the Keystone bridge and is configured separately.")
                 }
                 Section {
                     TextField("IP address (e.g. 192.168.1.42)", text: $host)

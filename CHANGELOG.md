@@ -46,3 +46,9 @@ This log records verified, release-specific changes. The [Factual release change
 
 ## Unreleased
 - Sign-in QR flow now opens **Tuya Smart** (`tuyaSmart://`) rather than Smart Life, with an App Store fallback. Login instructions and QR share label use Tuya Smart; the underlying Tuya Home Assistant QR auth protocol is unchanged.
+
+## Unreleased — Tuya session and device controls
+- Preserve Tuya credentials and local device state on transient authorization errors; add explicit Tuya Smart reconnect.
+- Coalesce token refresh within a client and reuse one cloud client across app, Shortcuts and widgets.
+- Run all-device commands sequentially; show attempted and failed device counts instead of silently controlling only a subset.
+- Automatically use a power-outlet icon for plug/strip categories, with a selectable icon for every light or plug in Settings.

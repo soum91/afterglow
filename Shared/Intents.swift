@@ -72,7 +72,8 @@ struct AllLightsOffIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let failed = try await Lights.set(nil, on: false)
-        return .result(dialog: IntentDialog(stringLiteral: failed.isEmpty ? "Lights off." : "Lights off, except \(failed.joined(separator: ", ")): it didn't answer."))
+        let all = Lights.all().filter { $0.powerCode != nil }
+        return .result(dialog: IntentDialog(stringLiteral: "Off command accepted by \(all.count - failed.count) of \(all.count) devices. \(failed.isEmpty ? "" : "Failed: \(failed.joined(separator: ", ")).")"))
     }
 }
 
@@ -87,7 +88,8 @@ struct AllLightsOnIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let failed = try await Lights.set(nil, on: true)
-        return .result(dialog: IntentDialog(stringLiteral: failed.isEmpty ? "Lights on." : "Lights on, except \(failed.joined(separator: ", ")): it didn't answer."))
+        let all = Lights.all().filter { $0.powerCode != nil }
+        return .result(dialog: IntentDialog(stringLiteral: "On command accepted by \(all.count - failed.count) of \(all.count) devices. \(failed.isEmpty ? "" : "Failed: \(failed.joined(separator: ", ")).")"))
     }
 }
 
@@ -178,7 +180,8 @@ struct SetLightPowerIntent: AppIntent {
     static var parameterSummary: some ParameterSummary { Summary("Turn \(\.$light) \(\.$on)") }
 
     func perform() async throws -> some IntentResult {
-        try await Lights.set(light.isAll ? nil : [light.id], on: on)
+        let failed = try await Lights.set(light.isAll ? nil : [light.id], on: on)
+        if !failed.isEmpty { throw TuyaError(message: "Could not switch: \(failed.joined(separator: ", ")).") }
         return .result()
     }
 }

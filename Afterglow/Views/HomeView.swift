@@ -144,7 +144,7 @@ struct LightTile: View {
             HStack(alignment: .top) {
                 ZStack {
                     Circle().fill(on ? light.tint : Color.white.opacity(0.1)).frame(width: 40, height: 40)
-                    Image(systemName: on ? "lightbulb.fill" : "lightbulb")
+                    Image(systemName: light.iconName)
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(on ? Color.black.opacity(0.75) : .white.opacity(0.7))
                 }

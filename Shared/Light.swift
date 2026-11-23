@@ -12,6 +12,8 @@ struct Light: Codable, Identifiable, Hashable {
     var version: Double?
     /// Hidden lights stay out of the grid, widgets and "all lights".
     var hidden: Bool = false
+    /// Optional SF Symbol chosen in Afterglow. Nil means device-aware default.
+    var customIcon: String? = nil
     var order: Int = 0
     /// Last time a status came in, from either path.
     var updated: Date?
@@ -21,6 +23,22 @@ struct Light: Codable, Identifiable, Hashable {
     var status: [String: JSONValue] { info.status }
     var localKey: String? { info.localKey }
     var hasLocal: Bool { !(host ?? "").isEmpty && !(localKey ?? "").isEmpty }
+    var iconName: String {
+        if let customIcon, !customIcon.isEmpty { return customIcon }
+        // Keep a plug shown as a light by user choice from looking like a bulb.
+        if info.category == "pc" || (!DeviceInfo.lightCategories.contains(info.category) &&
+            (name.localizedCaseInsensitiveContains("power strip") || name.localizedCaseInsensitiveContains("extension"))) {
+            return "poweroutlet.strip.fill"
+        }
+        if ["cz"].contains(info.category) ||
+            (!DeviceInfo.lightCategories.contains(info.category) &&
+             name.localizedCaseInsensitiveContains("power outlet")) {
+            return "poweroutlet.type.b"
+        }
+        if ["kg", "kgq", "tdq", "znjdq", "dlq"].contains(info.category) { return "switch.2" }
+        if name.localizedCaseInsensitiveContains("ceiling") { return "light.ceiling.fill" }
+        return "lightbulb.fill"
+    }
 
     func spec(_ code: String) -> DPSpec? { functions[code] ?? statusSpec[code] }
     private func first(_ codes: [String]) -> String? {
@@ -337,10 +355,12 @@ struct LightSnap: Codable, Hashable, Identifiable {
     var colour: Light.HSV?
     var temperature: Double?
     var canDim: Bool
+    var iconName: String?
 
     init(_ l: Light) {
         id = l.id; name = l.name; isOn = l.isOn; percent = l.percent; online = l.online
         colourMode = l.isColourMode; colour = l.colour; temperature = l.temperature; canDim = l.canDim
+        iconName = l.iconName
     }
 
     var tint: Color { Light.tint(colourMode: colourMode, colour: colour, temperature: temperature) }

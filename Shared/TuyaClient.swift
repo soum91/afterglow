@@ -143,6 +143,8 @@ enum TuyaLogin {
 
 actor TuyaClient {
     private(set) var token: TuyaToken
+    /// Coalesces overlapping refresh attempts from device reload, widgets and Shortcuts.
+    private var refreshTask: Task<TuyaToken, Error>?
 
     init(token: TuyaToken) { self.token = token }
 
@@ -216,30 +218,49 @@ actor TuyaClient {
     }
 
     private func refreshIfNeeded() async throws {
-        guard token.expiresAt.timeIntervalSinceNow < 60 else { return }
-        // The widget or a background run may already have refreshed it.
-        if let stored = TokenStore.load(), stored.refreshToken != token.refreshToken || stored.expiresAt > token.expiresAt {
+        // A widget or another request might already have rotated the token.
+        if let stored = TokenStore.load(),
+           stored.refreshToken != token.refreshToken || stored.expiresAt > token.expiresAt {
             token = stored
-            if token.expiresAt.timeIntervalSinceNow >= 60 { return }
         }
-        let response: (result: Any?, t: Double?)
+        guard token.expiresAt.timeIntervalSinceNow < 120 else { return }
+        if let pending = refreshTask {
+            token = try await pending.value
+            return
+        }
+        let previous = token
+        let operation = Task<TuyaToken, Error> { try await self.rotateToken() }
+        refreshTask = operation
+        defer { refreshTask = nil }
         do {
-            response = try await raw("GET", "/v1.0/m/token/\(token.refreshToken)")
-        } catch let e as TuyaError {
-            throw TuyaError(message: "Your Smart Life session expired. Sign in again. (\(e.message))", code: e.code, isAuth: true)
+            let result = try await operation.value
+            token = result
+            TokenStore.save(result)
+        } catch {
+            if let stored = TokenStore.load(), stored.refreshToken != previous.refreshToken {
+                token = stored
+                return
+            }
+            // Do not delete the stored session on a network or refresh error.
+            throw TuyaError(message: "Tuya Smart authorization couldn't refresh: \(error.localizedDescription). Reconnect from Settings if it persists.", isAuth: true)
         }
-        guard let r = response.result as? [String: Any],
-              let access = r["accessToken"] as? String,
-              let refresh = r["refreshToken"] as? String else {
-            throw TuyaError(message: "Your Smart Life session expired. Sign in again.", isAuth: true)
+    }
+
+    private func rotateToken() async throws -> TuyaToken {
+        let response = try await raw("GET", "/v1.0/m/token/\(token.refreshToken)")
+        guard let obj = response.result as? [String: Any],
+              let access = obj["accessToken"] as? String,
+              let refresh = obj["refreshToken"] as? String else {
+            throw TuyaError(message: "Tuya returned no replacement refresh token.", isAuth: true)
         }
-        let t = response.t ?? Date().timeIntervalSince1970 * 1000
-        let expire = (r["expireTime"] as? NSNumber)?.doubleValue ?? 7200
-        token.accessToken = access
-        token.refreshToken = refresh
-        if let uid = r["uid"] { token.uid = "\(uid)" }
-        token.expiresAt = Date(timeIntervalSince1970: t / 1000 + expire)
-        TokenStore.save(token)
+        var updated = token
+        let serverTime = response.t ?? Date().timeIntervalSince1970 * 1000
+        let seconds = (obj["expireTime"] as? NSNumber)?.doubleValue ?? 7200
+        updated.accessToken = access
+        updated.refreshToken = refresh
+        updated.uid = obj["uid"].map { String(describing: $0) } ?? updated.uid
+        updated.expiresAt = Date(timeIntervalSince1970: serverTime / 1000 + seconds)
+        return updated
     }
 
     private func raw(_ method: String, _ path: String, query: [String: Any]? = nil, body: [String: Any]? = nil) async throws -> (result: Any?, t: Double?) {
@@ -298,4 +319,21 @@ actor TuyaClient {
         }
         return (String(data: plain, encoding: .utf8), t)
     }
+}
+
+/// Reuse a single client across app reloads and Shortcut actions so concurrent
+/// commands never independently rotate the same saved refresh token.
+actor TuyaClientPool {
+    static let shared = TuyaClientPool()
+    private var cached: TuyaClient?
+    private var userCode: String?
+
+    func client(token: TuyaToken) -> TuyaClient {
+        if let cached, userCode == token.userCode { return cached }
+        let result = TuyaClient(token: token)
+        cached = result
+        userCode = token.userCode
+        return result
+    }
+    func reset() { cached = nil; userCode = nil }
 }
