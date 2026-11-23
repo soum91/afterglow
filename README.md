@@ -44,3 +44,10 @@ Cloud: the Smart Life sharing login Home Assistant's Tuya integration uses (no d
 Local: TCP 6668, Tuya 3.3 (AES-ECB + CRC), 3.4 (session key + HMAC) and 3.5 (session key + AES-GCM), ported from [tinytuya](https://github.com/jasonacox/tinytuya). Lights are found by scanning the /24 for port 6668 and proving each light's key against each open address. Standard light points: 20 switch, 21 mode, 22 brightness (10–1000), 23 temperature (0–1000), 24 colour `HHHHSSSSVVVV`; v1 bulbs use 1–5 with `RRGGBB0HHHSSVV`.
 
 Independent implementation, not affiliated with Tuya or Sony.
+
+
+## Siri colour, brightness and warmth controls
+
+Afterglow advertises Siri/App Shortcuts for **Set Light Brightness** (1–100%), **Set Light Colour** (red/orange/yellow/green/teal/cyan/blue/purple/pink/magenta), **Set Light Colour Temperature** (2700–6500 K approximate mapping), and **Adjust Light Warmth** (warmer/cooler). Example spoken triggers include "Set brightness for Ceiling Light in Afterglow", "Change colour of Ceiling Light in Afterglow", "Set blue in Afterglow" and "Make Ceiling Light warmer in Afterglow". Siri may ask for a missing colour, light or numeric value; Apple controls speech matching, so natural-language variants aren't guaranteed. The Shortcuts app also exposes these actions with explicit fields.
+
+Only bulbs with the corresponding Tuya control codes are affected. "All lights" excludes plugs, strips and normal switches by default. Missing/removed light references fail instead of accidentally controlling all bulbs. Existing manual Bedtime and Toggle All Shortcuts actions remain available even though their two automatic Siri phrase slots are repurposed to stay under Apple's 10 advertised App Shortcuts limit.

@@ -80,3 +80,12 @@ This log records verified, release-specific changes. The [Factual release change
 - Fix blank ceiling-light SF Symbol by testing availability and falling back to lightbulb.
 - Add an explicit Remove action in device settings and a persistent removed-device exclusion list so cloud sync cannot reimport deleted devices. Allow restoration from Settings.
 - Use selected device icons in widgets and expose the bulk-actions inclusion toggle.
+
+
+## Unreleased — Siri colour and white light control
+- Register brightness as a spoken Siri/App Shortcut action (previously an unadvertised App Intent).
+- Add named colour, Kelvin white colour temperature and warmer/cooler intents using Afterglow's local-first Tuya command path.
+- Reject unknown/removed light selections rather than falling back to controlling all; report partial per-device command failures.
+- Keep power strips and switches out of all-lights colour/temperature actions.
+- Avoid turning RGB bulbs on nearly black when changing colour from off.
+- Preserve existing Bedtime and Toggle All as manual Shortcuts actions within the 10 promoted App Shortcuts limit.

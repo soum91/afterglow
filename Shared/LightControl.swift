@@ -228,13 +228,75 @@ enum Lights {
         return !anyOn
     }
 
-    static func setBrightness(_ id: String?, percent: Int) async throws {
-        let p = Double(max(1, min(100, percent))) / 100
-        let targets = (id.flatMap { find($0) }.map { [$0] } ?? groupedLights()).filter(\.canDim)
-        guard !targets.isEmpty else { throw TuyaError(message: "That light can't dim.") }
-        let errors = await LightControl.shared.apply(targets.map { ($0, LightState(on: true, brightness: p)) })
+    /// Explicit targets must NEVER silently fall back to 'all lights' when a
+    /// named light was deleted, renamed, hidden, or is the wrong device type.
+    private static func targets(_ id: String?, supports: (Light) -> Bool,
+                                capability: String) throws -> [Light] {
+        let pool: [Light]
+        if let id {
+            guard let chosen = all().first(where: { $0.id == id }) else {
+                throw TuyaError(message: "That light is not available in Afterglow. Re-select it in Shortcuts.")
+            }
+            pool = [chosen]
+        } else {
+            pool = groupedLights()
+        }
+        let matching = pool.filter(supports)
+        guard !matching.isEmpty else {
+            throw TuyaError(message: "The selected light doesn't support \(capability).")
+        }
+        return matching
+    }
+
+    private static func applyChanges(_ targets: [(Light, LightState)]) async throws {
+        let errors = await LightControl.shared.apply(targets, force: true)
         reloadWidgets()
-        if errors.count == targets.count, let e = errors.values.first { throw e }
+        if !errors.isEmpty {
+            let details = targets.compactMap { item -> String? in
+                guard let error = errors[item.0.id] else { return nil }
+                return "\(item.0.name): \(error.localizedDescription)"
+            }
+            throw TuyaError(message: "Could not change \(details.joined(separator: "; ")).")
+        }
+    }
+
+    static func setBrightness(_ id: String?, percent: Int) async throws {
+        guard (1...100).contains(percent) else { throw TuyaError(message: "Brightness must be 1 to 100 percent.") }
+        let selected = try targets(id, supports: \.canDim, capability: "brightness")
+        let b = Double(percent) / 100
+        try await applyChanges(selected.map { ($0, LightState(on: true, brightness: b)) })
+    }
+
+    static func setColour(_ id: String?, hue: Double, saturation: Double) async throws {
+        let selected = try targets(id, supports: \.canColour, capability: "RGB colours")
+        let h = hue.truncatingRemainder(dividingBy: 360)
+        let s = min(1, max(0, saturation))
+        try await applyChanges(selected.map { light in
+            (light, LightState(on: true, hue: h, saturation: s))
+        })
+    }
+
+    /// The existing UI's temperature scale approximates 2700 K (warm) to
+    /// 6500 K (daylight). The device maps that to its actual Tuya DP range.
+    static func setTemperature(_ id: String?, kelvin: Int) async throws {
+        guard (2700...6500).contains(kelvin) else {
+            throw TuyaError(message: "Choose a white temperature from 2700 to 6500 Kelvin.")
+        }
+        let normalized = Double(kelvin - 2700) / 3800
+        let selected = try targets(id, supports: \.canTemp, capability: "adjustable white temperature")
+        try await applyChanges(selected.map { ($0, LightState(on: true, temperature: normalized)) })
+    }
+
+    static func adjustTemperature(_ id: String?, warmer: Bool) async throws {
+        // Read the latest cloud/LAN state so repeated voice commands step from
+        // the current temperature rather than a stale cached slider position.
+        await refresh()
+        let selected = try targets(id, supports: \.canTemp, capability: "adjustable white temperature")
+        try await applyChanges(selected.map { light in
+            let prior = light.temperature ?? 0.5
+            let next = min(1, max(0, prior + (warmer ? -0.15 : 0.15)))
+            return (light, LightState(on: true, temperature: next))
+        })
     }
 
     /// Pulls fresh state for widgets: local first, then one cloud call for everything else.

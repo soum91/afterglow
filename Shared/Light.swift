@@ -217,7 +217,11 @@ extension Light {
 
         if let h = target.hue, let code = colourCode {
             let s = target.saturation ?? 1
-            let v = target.brightness ?? (isColourMode ? (colour?.v ?? 1) : brightness)
+            // When a bulb is off, its reported brightness may be zero; don't
+            // turn a newly selected RGB colour on at an invisible 1% level.
+            let previous = isColourMode ? (colour?.v ?? brightness) : brightness
+            let safeBrightness = isOn ? max(0.01, previous) : max(0.6, previous)
+            let v = target.brightness ?? safeBrightness
             if let m = modeCode, force || mode != "colour" { out.append((m, .string("colour"))) }
             out.append((code, .string(colourJSON(h: h, s: s, v: v))))
             return out

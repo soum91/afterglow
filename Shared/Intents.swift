@@ -201,11 +201,102 @@ struct SetBrightnessIntent: AppIntent {
     @Parameter(title: "Brightness", default: 50, inclusiveRange: (1, 100))
     var percent: Int
 
-    static var parameterSummary: some ParameterSummary { Summary("Set \(\.$light) to \(\.$percent)%") }
+    static var parameterSummary: some ParameterSummary { Summary("Set \(\.$light) brightness to \(\.$percent) percent") }
 
-    func perform() async throws -> some IntentResult {
+    func perform() async throws -> some IntentResult & ProvidesDialog {
         try await Lights.setBrightness(light.isAll ? nil : light.id, percent: percent)
-        return .result()
+        return .result(dialog: IntentDialog(stringLiteral: "\(light.name) brightness set to \(percent) percent."))
+    }
+}
+
+
+enum VoiceLightColour: String, AppEnum {
+    case red, orange, yellow, green, teal, cyan, blue, purple, pink, magenta
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Light Colour"
+    static var caseDisplayRepresentations: [Self: DisplayRepresentation] = [
+        .red: "Red", .orange: "Orange", .yellow: "Yellow", .green: "Green",
+        .teal: "Teal", .cyan: "Cyan", .blue: "Blue", .purple: "Purple",
+        .pink: "Pink", .magenta: "Magenta"
+    ]
+    var hue: Double {
+        switch self {
+        case .red: return 0
+        case .orange: return 30
+        case .yellow: return 55
+        case .green: return 120
+        case .teal: return 170
+        case .cyan: return 185
+        case .blue: return 240
+        case .purple: return 275
+        case .pink: return 330
+        case .magenta: return 305
+        }
+    }
+}
+
+struct SetLightColourIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    static let isDiscoverable = false
+    #endif
+    static var title: LocalizedStringResource = "Set Light Colour"
+    static var description = IntentDescription("Set one RGB-capable light or all RGB lights to a named colour. Plugs and power strips are excluded from All Lights.")
+
+    @Parameter(title: "Light") var light: LightEntity
+    @Parameter(title: "Colour") var colour: VoiceLightColour
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Set \(\.$light) to \(\.$colour)")
+    }
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        try await Lights.setColour(light.isAll ? nil : light.id, hue: colour.hue, saturation: 1)
+        return .result(dialog: IntentDialog(stringLiteral: "\(light.name) colour set to \(colour.rawValue)."))
+    }
+}
+
+struct SetLightTemperatureIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    static let isDiscoverable = false
+    #endif
+    static var title: LocalizedStringResource = "Set Light Colour Temperature"
+    static var description = IntentDescription("Set an adjustable white bulb to a colour temperature in Kelvin (2700 to 6500 K). Different bulbs may have narrower actual temperature ranges.")
+
+    @Parameter(title: "Light") var light: LightEntity
+    @Parameter(title: "Kelvin", default: 4000, inclusiveRange: (2700, 6500))
+    var kelvin: Int
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Set \(\.$light) white temperature to \(\.$kelvin) Kelvin")
+    }
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        try await Lights.setTemperature(light.isAll ? nil : light.id, kelvin: kelvin)
+        return .result(dialog: IntentDialog(stringLiteral: "\(light.name) white temperature set to approximately \(kelvin) Kelvin."))
+    }
+}
+
+enum VoiceTemperatureDirection: String, AppEnum {
+    case warmer, cooler
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "White Temperature"
+    static var caseDisplayRepresentations: [Self: DisplayRepresentation] = [
+        .warmer: "Warmer", .cooler: "Cooler"
+    ]
+}
+
+struct AdjustLightTemperatureIntent: AppIntent {
+    #if WIDGET_EXTENSION
+    static let isDiscoverable = false
+    #endif
+    static var title: LocalizedStringResource = "Adjust Light Warmth"
+    static var description = IntentDescription("Make one adjustable white light warmer or cooler by a small step.")
+
+    @Parameter(title: "Light") var light: LightEntity
+    @Parameter(title: "Direction", default: .warmer) var direction: VoiceTemperatureDirection
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Make \(\.$light) \(\.$direction)")
+    }
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        try await Lights.adjustTemperature(light.isAll ? nil : light.id, warmer: direction == .warmer)
+        return .result(dialog: IntentDialog(stringLiteral: "\(light.name) is \(direction.rawValue)."))
     }
 }
 

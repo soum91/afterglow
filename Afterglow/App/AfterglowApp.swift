@@ -122,14 +122,28 @@ struct AfterglowShortcuts: AppShortcutsProvider {
             "Toggle \(\.$light) in \(.applicationName)",
             "Switch \(\.$light) with \(.applicationName)",
         ], shortTitle: "Toggle Light", systemImageName: "lightswitch.on")
-        AppShortcut(intent: ToggleAllLightsShortcutIntent(), phrases: [
-            "Switch all lights with \(.applicationName)",
-            "Toggle all lights in \(.applicationName)",
-            "\(.applicationName) light switch",
-        ], shortTitle: "Light Switch", systemImageName: "lightbulb.fill")
-        AppShortcut(intent: LightsOffIfTVOffIntent(), phrases: [
-            "Bedtime in \(.applicationName)",
-        ], shortTitle: "Lights Off If TV Off", systemImageName: "tv.slash")
+        // App Shortcuts are capped at 10 entries. These four colour/brightness
+        // actions take the Siri slots formerly used by Toggle All and Bedtime;
+        // those existing intents remain available as manual Shortcuts actions.
+        AppShortcut(intent: SetBrightnessIntent(), phrases: [
+            "Set brightness for \(\.$light) in \(.applicationName)",
+            "Dim \(\.$light) in \(.applicationName)",
+            "Change brightness in \(.applicationName)",
+        ], shortTitle: "Light Brightness", systemImageName: "sun.max.fill")
+        AppShortcut(intent: SetLightColourIntent(), phrases: [
+            "Change colour of \(\.$light) in \(.applicationName)",
+            "Set \(\.$light) colour in \(.applicationName)",
+            "Set \(\.$colour) in \(.applicationName)",
+        ], shortTitle: "Light Colour", systemImageName: "paintpalette.fill")
+        AppShortcut(intent: SetLightTemperatureIntent(), phrases: [
+            "Set white temperature for \(\.$light) in \(.applicationName)",
+            "Change colour temperature in \(.applicationName)",
+        ], shortTitle: "White Temperature", systemImageName: "thermometer.medium")
+        AppShortcut(intent: AdjustLightTemperatureIntent(), phrases: [
+            "Make \(\.$light) warmer in \(.applicationName)",
+            "Adjust warmth of \(\.$light) in \(.applicationName)",
+            "Set \(\.$direction) in \(.applicationName)",
+        ], shortTitle: "Light Warmth", systemImageName: "sun.horizon.fill")
     }
 }
 
