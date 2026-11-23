@@ -1,5 +1,15 @@
 # Changelog
 
+## [build-42] - 2026-11-23
+
+## Verified changes since build-39
+
+- Build only latest Afterglow IPA and verify FlareStore feed publication ([`5df3742f`](https://github.com/soum91/afterglow/commit/5df3742fe3d37290869c9e8f690b29a06e119775); `.github/workflows/build.yml`)
+- Back up Afterglow Tuya credentials in private app storage across App Group re-signing ([`001efb19`](https://github.com/soum91/afterglow/commit/001efb192e731ea24917130a054c5dff18ce989e); `Shared/SharedStore.swift`)
+- Prevent Tuya auth loss, serialize all-light commands, and add per-device icons ([`e762ae77`](https://github.com/soum91/afterglow/commit/e762ae77e23cc907956053363774965c9ec76389); `Afterglow/App/AppStore.swift`, `Afterglow/Views/HomeView.swift`, `Afterglow/Views/SettingsView.swift`, and 4 more)
+
+[Inspect exact code changes](https://github.com/soum91/afterglow/compare/build-39...build-42)
+
 ## [build-39] - 2026-11-23
 
 ## Verified changes since build-38
