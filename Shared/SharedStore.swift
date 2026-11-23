@@ -35,12 +35,16 @@ enum AppGroup {
                 if first == nil { first = id }
             }
         }
+        // Always keep a private backup alongside the App Group copy. A sideloader
+        // may change the App Group when re-signing an update; otherwise credentials
+        // and device mappings silently appear to have been deleted on install.
+        let privateURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("AfterglowData", isDirectory: true)
+        try? FileManager.default.createDirectory(at: privateURL, withIntermediateDirectories: true)
         if let first, let url = urls.first {
-            return (url, true, first, unique, urls)
+            return (url, true, first, unique, urls + [privateURL])
         }
-        let fallback = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        try? FileManager.default.createDirectory(at: fallback, withIntermediateDirectories: true)
-        return (fallback, false, nil, unique, [fallback])
+        return (privateURL, false, nil, unique, [privateURL])
     }()
 
     /// App Group IDs from this bundle's embedded.mobileprovision and its executable's code signature.
