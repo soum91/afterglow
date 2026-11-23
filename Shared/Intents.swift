@@ -72,7 +72,7 @@ struct AllLightsOffIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let failed = try await Lights.set(nil, on: false)
-        let all = Lights.all().filter { $0.powerCode != nil }
+        let all = Lights.groupedLights().filter { $0.powerCode != nil }
         return .result(dialog: IntentDialog(stringLiteral: "Off command accepted by \(all.count - failed.count) of \(all.count) devices. \(failed.isEmpty ? "" : "Failed: \(failed.joined(separator: ", ")).")"))
     }
 }
@@ -88,7 +88,7 @@ struct AllLightsOnIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let failed = try await Lights.set(nil, on: true)
-        let all = Lights.all().filter { $0.powerCode != nil }
+        let all = Lights.groupedLights().filter { $0.powerCode != nil }
         return .result(dialog: IntentDialog(stringLiteral: "On command accepted by \(all.count - failed.count) of \(all.count) devices. \(failed.isEmpty ? "" : "Failed: \(failed.joined(separator: ", ")).")"))
     }
 }

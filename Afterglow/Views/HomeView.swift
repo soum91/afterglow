@@ -55,8 +55,8 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Afterglow").font(.system(size: 34, weight: .bold, design: .rounded))
                 HStack(spacing: 8) {
-                    let on = store.visible.filter(\.isOn).count
-                    Text(store.visible.isEmpty ? "No lights yet" : on == 0 ? "All off" : "\(on) of \(store.visible.count) on")
+                    let on = store.groupLights.filter(\.isOn).count
+                    Text(store.groupLights.isEmpty ? "No lights in group" : on == 0 ? "Lights off" : "\(on) of \(store.groupLights.count) lights on")
                         .foregroundStyle(.secondary)
                     if let p = store.tvPower {
                         Label(p.isOn ? "TV on" : "TV off", systemImage: p.isOn ? "tv.fill" : "tv")
@@ -87,7 +87,7 @@ struct HomeView: View {
     private var allBar: some View {
         HStack(spacing: 10) {
             bigButton("All off", "lightbulb.slash.fill", active: !store.anyOn) { store.setAll(on: false) }
-            bigButton("All on", "lightbulb.2.fill", active: store.anyOn && store.visible.allSatisfy(\.isOn)) { store.setAll(on: true) }
+            bigButton("All on", "lightbulb.2.fill", active: store.anyOn && store.groupLights.allSatisfy(\.isOn)) { store.setAll(on: true) }
         }
     }
 
@@ -105,16 +105,24 @@ struct HomeView: View {
 
     private var lightsGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionTitle(text: "Lights")
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                ForEach(store.visible) { l in
-                    LightTile(light: l, route: store.routes[l.id]) {
-                        store.toggle(l)
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    } open: {
-                        detail = l.id
-                    }
-                }
+            if !store.groupLights.isEmpty {
+                SectionTitle(text: "Lights")
+                deviceTiles(store.groupLights)
+            }
+            if !store.otherDevices.isEmpty {
+                SectionTitle(text: "Other devices · excluded from All Lights")
+                deviceTiles(store.otherDevices)
+            }
+        }
+    }
+
+    private func deviceTiles(_ devices: [Light]) -> some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+            ForEach(devices) { l in
+                LightTile(light: l, route: store.routes[l.id]) {
+                    store.toggle(l)
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } open: { detail = l.id }
             }
         }
     }

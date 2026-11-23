@@ -26,8 +26,8 @@ struct LightScene: Codable, Identifiable, Hashable {
     var hasLocationTrigger: Bool { onArrive == true || onLeave == true }
 
     func targets(_ lights: [Light]) -> [(Light, LightState)] {
-        if let all = allState { return lights.filter { !$0.hidden }.map { ($0, all) } }
-        return lights.compactMap { l in states[l.id].map { (l, $0) } }
+        if let all = allState { return lights.filter { !$0.hidden && $0.belongsToAllLights }.map { ($0, all) } }
+        return lights.filter { !$0.hidden }.compactMap { l in states[l.id].map { (l, $0) } }
     }
 
     func summary(_ lights: [Light]) -> String {

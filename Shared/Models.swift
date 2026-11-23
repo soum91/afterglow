@@ -36,12 +36,18 @@ struct DeviceInfo: Codable, Hashable, Identifiable {
         get { Set(AppGroup.read([String].self, "included-devices.json") ?? []) }
         set { AppGroup.write(Array(newValue), "included-devices.json") }
     }
+    /// An explicit removal survives future Tuya cloud refreshes and app restarts.
+    static var excluded: Set<String> {
+        get { Set(AppGroup.read([String].self, "excluded-devices.json") ?? []) }
+        set { AppGroup.write(Array(newValue), "excluded-devices.json") }
+    }
     /// Things that switch something on and off, which could have a light behind them.
     var isSwitchLike: Bool {
         ["kg", "cz", "pc", "tdq", "kgq", "dlq", "znjdq"].contains(category) ||
             status.keys.contains { $0 == "switch" || $0.hasPrefix("switch_") }
     }
     var isLight: Bool {
+        if Self.excluded.contains(id) { return false }
         if Self.included.contains(id) { return true }
         if Self.lightCategories.contains(category) { return true }
         // A lamp on a smart plug or switch counts if it's named like one.

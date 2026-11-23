@@ -201,7 +201,7 @@ enum BridgeAPI {
         }
         func actions(_ sceneID: String?, fallbackOff: Bool) -> [[String: Any]] {
             let scene = sceneID.flatMap { id in scenes.first { $0.id == id } }
-            let targets: [(Light, LightState)] = scene?.targets(usable) ?? (fallbackOff ? usable.map { ($0, LightState(on: false)) } : [])
+            let targets: [(Light, LightState)] = scene?.targets(usable) ?? (fallbackOff ? usable.filter(\.belongsToAllLights).map { ($0, LightState(on: false)) } : [])
             return targets.compactMap { l, t in
                 guard let dps = l.localDPS(l.commands(for: t, force: true)), !dps.isEmpty else { return nil }
                 return ["id": l.id, "dps": dps.mapValues { $0.any }]

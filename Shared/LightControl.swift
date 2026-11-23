@@ -201,12 +201,13 @@ extension Light {
 /// Entry points for code outside the app's UI (widget, Control Center, Siri, background).
 enum Lights {
     static func all() -> [Light] { LightStore.visible() }
+    static func groupedLights() -> [Light] { LightStore.visible().filter(\.belongsToAllLights) }
     static func find(_ id: String) -> Light? { LightStore.load().first { $0.id == id } }
 
     /// Returns the names of lights that didn't answer (throws only if none did).
     @discardableResult
     static func set(_ ids: [String]?, on: Bool) async throws -> [String] {
-        let pool = all()
+        let pool = ids == nil ? groupedLights() : all()
         let targets = (ids.map { wanted in pool.filter { wanted.contains($0.id) } } ?? pool).filter { $0.powerCode != nil }
         guard !targets.isEmpty else { throw TuyaError(message: "No lights found. Open Afterglow first.") }
         let errors = await LightControl.shared.apply(targets.map { ($0, LightState(on: on)) }, force: true)
@@ -222,14 +223,14 @@ enum Lights {
             reloadWidgets()
             return on
         }
-        let anyOn = all().contains { $0.isOn }
+        let anyOn = groupedLights().contains { $0.isOn }
         try await set(nil, on: !anyOn)
         return !anyOn
     }
 
     static func setBrightness(_ id: String?, percent: Int) async throws {
         let p = Double(max(1, min(100, percent))) / 100
-        let targets = (id.flatMap { find($0) }.map { [$0] } ?? all()).filter(\.canDim)
+        let targets = (id.flatMap { find($0) }.map { [$0] } ?? groupedLights()).filter(\.canDim)
         guard !targets.isEmpty else { throw TuyaError(message: "That light can't dim.") }
         let errors = await LightControl.shared.apply(targets.map { ($0, LightState(on: true, brightness: p)) })
         reloadWidgets()

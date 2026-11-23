@@ -18,6 +18,7 @@ final class AppStore: ObservableObject {
     @Published var tvPower: TVPower?
     /// Switches and plugs on the account that aren't shown as lights (yet). Filled by reloadDevices.
     @Published var addable: [DeviceInfo] = []
+    @Published var removedDevices: [DeviceInfo] = []
     /// Switches and plugs that appeared in Smart Life since last time, to ask whether a light is on them.
     @Published var newSwitches: [DeviceInfo] = []
     private var lastReload = Date.distantPast
@@ -34,7 +35,9 @@ final class AppStore: ObservableObject {
     }
 
     var visible: [Light] { lights.filter { !$0.hidden } }
-    var anyOn: Bool { visible.contains { $0.isOn } }
+    var groupLights: [Light] { visible.filter(\.belongsToAllLights) }
+    var otherDevices: [Light] { visible.filter { !$0.belongsToAllLights } }
+    var anyOn: Bool { groupLights.contains { $0.isOn } }
 
     // MARK: Account
 
@@ -64,7 +67,8 @@ final class AppStore: ObservableObject {
             let client = await TuyaClientPool.shared.client(token: t)
             let all = try await client.allDevices()
             let found = all.filter(\.isLight)
-            addable = all.filter { !$0.isLight && $0.isSwitchLike }.sorted { $0.name < $1.name }
+            removedDevices = all.filter { DeviceInfo.excluded.contains($0.id) }.sorted { $0.name < $1.name }
+            addable = all.filter { !DeviceInfo.excluded.contains($0.id) && !$0.isLight && $0.isSwitchLike }.sorted { $0.name < $1.name }
             lastReload = .now
             // Spot devices added to Smart Life since last time (not on the very first load).
             let knownKey = "knownDeviceIDs"
@@ -130,13 +134,16 @@ final class AppStore: ObservableObject {
         }
     }
 
-    /// Show a switch or plug as a light (or stop showing it).
+    /// Add a manually selected switch/plug without placing it into the All Lights group.
     func include(_ id: String, _ on: Bool) async {
+        if !on { await removeDevice(id); return }
+        var excluded = DeviceInfo.excluded
+        excluded.remove(id)
+        DeviceInfo.excluded = excluded
         var set = DeviceInfo.included
-        if on { set.insert(id) } else { set.remove(id) }
+        set.insert(id)
         DeviceInfo.included = set
         await reloadDevices()
-        guard on else { _ = await BridgeSync.pushIfChanged(); show("Removed."); return }
         // The bridge only talks to devices on the Wi-Fi, so find this one first, then send.
         if let l = lights.first(where: { $0.id == id }), !l.hasLocal, LocalScan.wifiAddress() != nil {
             await findOnWiFi(quiet: true)
@@ -147,6 +154,56 @@ final class AppStore: ObservableObject {
             show("Added in Afterglow, through the cloud. Not on the bridge: \(why)")
         } else {
             show(sent.map { $0.hasPrefix("Couldn't") ? "Added. The bridge gets it next time Afterglow is open at home." : "Added and sent to the bridge." } ?? "Added and on the bridge.")
+        }
+    }
+
+    /// Remove the app's reference without turning the real Tuya device off.
+    /// Exclusion is persisted BEFORE any network request so cloud reload cannot
+    /// restore the device if the user is offline or the token refresh fails.
+    func removeDevice(_ id: String) async {
+        var excluded = DeviceInfo.excluded
+        excluded.insert(id)
+        DeviceInfo.excluded = excluded
+        var included = DeviceInfo.included
+        included.remove(id)
+        DeviceInfo.included = included
+
+        let deleted = lights.first(where: { $0.id == id })
+        var saved = LightStore.load()
+        saved.removeAll { $0.id == id }
+        LightStore.save(saved)
+        lights = LightStore.load()
+        addable.removeAll { $0.id == id }
+        if let info = deleted?.info {
+            removedDevices.removeAll { $0.id == id }
+            removedDevices.append(info)
+            removedDevices.sort { $0.name < $1.name }
+        }
+        newSwitches.removeAll { $0.id == id }
+        await LightControl.shared.drop(id)
+        Lights.reloadWidgets()
+        AfterglowShortcuts.updateAppShortcutParameters()
+        // An Afterglow-managed Home accessory is removed from its bridge config.
+        // Keystone-managed accessories must still be removed through Keystone.
+        let outcome = await BridgeSync.pushIfChanged(force: true)
+        if let outcome, outcome.hasPrefix("Couldn't") {
+            show("Removed from Afterglow. Bridge sync failed; open Apple Home bridge and retry. Your real device was not switched off.")
+        } else {
+            show("Removed from Afterglow and Shortcuts. The Tuya device stays paired; manage any separate Keystone Apple Home accessory in Keystone.")
+        }
+    }
+
+    func restoreDevice(_ id: String) async {
+        var excluded = DeviceInfo.excluded
+        excluded.remove(id)
+        DeviceInfo.excluded = excluded
+        removedDevices.removeAll { $0.id == id }
+        await reloadDevices()
+        if !lights.contains(where: { $0.id == id }) {
+            await include(id, true)
+        } else {
+            _ = await BridgeSync.pushIfChanged(force: true)
+            show("Restored in Afterglow.")
         }
     }
 
@@ -288,7 +345,7 @@ final class AppStore: ObservableObject {
                 if !failed.isEmpty {
                     show("Could not switch: \(failed.joined(separator: ", ")). Check Tuya Smart authorization and Wi-Fi.")
                 } else {
-                    show("Sent \(on ? "on" : "off") to \(Lights.all().filter { $0.powerCode != nil }.count) devices.")
+                    show("Sent \(on ? "on" : "off") to \(Lights.groupedLights().filter { $0.powerCode != nil }.count) lights. Other devices were left unchanged.")
                 }
                 if on { Donate.lightsOn() } else { Donate.lightsOff() }
             } catch { show(error.localizedDescription) }

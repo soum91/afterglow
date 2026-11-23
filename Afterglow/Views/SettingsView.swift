@@ -13,7 +13,7 @@ struct SettingsView: View {
                         LabeledContent("Lights", value: "\(store.visible.count) shown")
                     }
                     NavigationLink { AddDevicesView() } label: {
-                        Label("Add a switch or plug", systemImage: "plus.circle")
+                        Label("Add, remove or restore devices", systemImage: "plus.circle")
                     }
                     Button {
                         Task { await store.findOnWiFi() }
@@ -137,6 +137,8 @@ struct LightSettingsView: View {
     @State private var host = ""
     @State private var version = 0.0
     @State private var testing: String?
+    @State private var confirmRemove = false
+    @Environment(\.dismiss) private var dismiss
 
     private var light: Light? { store.lights.first { $0.id == lightID } }
 
@@ -165,6 +167,17 @@ struct LightSettingsView: View {
                 } header: { Text("Appearance") } footer: {
                     Text("Changes the icon in Afterglow. Apple Home's accessory category comes from the Keystone bridge and is configured separately.")
                 }
+                Section("Bulk actions") {
+                    Toggle("Include in All Lights and bulk scenes", isOn: Binding(
+                        get: { l.belongsToAllLights },
+                        set: { flag in
+                            store.updateLight(l.id) { $0.includeInAllLights = flag }
+                            Task { await BridgeSync.pushIfChanged(force: true) }
+                        }
+                    ))
+                } footer: {
+                    Text("Off keeps this device controllable individually but protects it from All On, All Off, Siri's All Lights commands, default light scenes, and TV/bedtime light automations.")
+                }
                 Section {
                     TextField("IP address (e.g. 192.168.1.42)", text: $host)
                         .keyboardType(.decimalPad)
@@ -185,6 +198,11 @@ struct LightSettingsView: View {
                 } footer: {
                     Text("Usually found automatically. Give the light a fixed IP (DHCP reservation) in your router so it stays reachable.")
                 }
+                Section {
+                    Button("Remove device from Afterglow", role: .destructive) { confirmRemove = true }
+                } footer: {
+                    Text("Removes this device from Afterglow, widgets, and Afterglow Shortcuts without switching off the actual Tuya device. Any separately configured Keystone accessory must be managed in Keystone.")
+                }
                 Section("Details") {
                     LabeledContent("Device ID", value: l.id).textSelection(.enabled)
                     LabeledContent("Local key", value: l.localKey.map { $0.isEmpty ? "–" : "\($0.prefix(4))…" } ?? "–")
@@ -194,7 +212,18 @@ struct LightSettingsView: View {
                 }
             }
         }
-        .navigationTitle(light?.name ?? "Light")
+        .navigationTitle(light?.name ?? "Device")
+        .confirmationDialog("Remove this device from Afterglow?", isPresented: $confirmRemove, titleVisibility: .visible) {
+            Button("Remove from Afterglow", role: .destructive) {
+                Task {
+                    await store.removeDevice(lightID)
+                    dismiss()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This only removes it from Afterglow. The physical Tuya device will stay powered and paired to Tuya Smart.")
+        }
         .onAppear {
             host = light?.host ?? ""
             version = light?.version ?? 0
@@ -233,7 +262,7 @@ struct AddDevicesView: View {
         List {
             Section {
                 if store.addable.isEmpty {
-                    Text(store.loading ? "Looking at your Smart Life devices…" : "No other switches or plugs on your account. Add the device in Smart Life first, then pull to refresh.")
+                    Text(store.loading ? "Looking at your Tuya Smart devices…" : "No new switches or plugs available. Devices already added appear in Settings → Lights; removed devices can be restored below.")
                         .foregroundStyle(.secondary)
                 }
                 ForEach(store.addable) { d in
@@ -274,14 +303,29 @@ struct AddDevicesView: View {
                                 }
                             }
                             Spacer()
-                            Button("Remove", role: .destructive) { Task { await store.include(l.id, false) } }
+                            Button("Remove", role: .destructive) { Task { await store.removeDevice(l.id) } }
                                 .buttonStyle(.bordered)
                         }
                     }
                 }
             }
         }
-        .navigationTitle("Add a switch or plug")
+            if !store.removedDevices.isEmpty {
+                Section("Removed devices") {
+                    ForEach(store.removedDevices) { d in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(d.name)
+                                Text(kind(d)).font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Restore") { Task { await store.restoreDevice(d.id) } }
+                                .buttonStyle(.bordered)
+                        }
+                    }
+                }
+            }
+        .navigationTitle("Add / remove devices")
         .refreshable { await store.reloadDevices() }
         .task { if store.addable.isEmpty { await store.reloadDevices() } }
     }

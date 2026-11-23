@@ -27,10 +27,10 @@ struct FavouriteLightView: View {
         if let s = entry.light {
             Button(intent: ToggleLightIntent(light: LightEntity(id: s.id, name: s.name))) {
                 if family == .accessoryCircular {
-                    ZStack { AccessoryWidgetBackground(); Image(systemName: s.isOn ? "lightbulb.fill" : "lightbulb") }
+                    ZStack { AccessoryWidgetBackground(); Image(systemName: s.iconName ?? "lightbulb.fill") }
                 } else {
                     VStack(alignment: .leading) {
-                        Label(s.name, systemImage: s.isOn ? "lightbulb.fill" : "lightbulb").font(.headline)
+                        Label(s.name, systemImage: s.iconName ?? "lightbulb.fill").font(.headline)
                         Text(!s.online ? "Offline" : s.isOn ? "On · \(s.percent)%" : "Off").font(.caption)
                     }
                 }

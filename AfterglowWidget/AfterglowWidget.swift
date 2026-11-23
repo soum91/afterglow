@@ -25,7 +25,7 @@ struct LightsEntry: TimelineEntry {
     let signedIn: Bool
     let shared: Bool
 
-    var onCount: Int { lights.filter(\.isOn).count }
+    var onCount: Int { lights.filter { ($0.groupedLight ?? true) && $0.isOn }.count }
     var anyOn: Bool { onCount > 0 }
     var glow: Color { lights.first(where: \.isOn)?.tint ?? Color(red: 1, green: 0.68, blue: 0.3) }
 
@@ -221,7 +221,7 @@ struct LightsWidgetView: View {
         VStack(alignment: .leading, spacing: 2) {
             Label(entry.anyOn ? "\(entry.onCount) on" : "All off", systemImage: entry.anyOn ? "lightbulb.fill" : "lightbulb")
                 .font(.headline)
-            Text(entry.lights.filter(\.isOn).map(\.name).joined(separator: ", ").ifEmpty("Lights"))
+            Text(entry.lights.filter { ($0.groupedLight ?? true) && $0.isOn }.map(\.name).joined(separator: ", ").ifEmpty("Lights"))
                 .font(.caption)
                 .lineLimit(2)
         }
@@ -234,7 +234,7 @@ struct LightButton: View {
     var body: some View {
         Button(intent: ToggleLightIntent(light: LightEntity(id: snap.id, name: snap.name))) {
             VStack(alignment: .leading, spacing: 3) {
-                Image(systemName: snap.isOn ? "lightbulb.fill" : "lightbulb")
+                Image(systemName: snap.iconName ?? "lightbulb.fill")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(snap.isOn ? Color.black.opacity(0.7) : .white.opacity(0.7))
                     .frame(width: 26, height: 26)

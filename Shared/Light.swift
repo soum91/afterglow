@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 /// One Tuya light: what the cloud told us about it, plus what we learned about reaching it on Wi-Fi.
 struct Light: Codable, Identifiable, Hashable {
@@ -14,6 +15,8 @@ struct Light: Codable, Identifiable, Hashable {
     var hidden: Bool = false
     /// Optional SF Symbol chosen in Afterglow. Nil means device-aware default.
     var customIcon: String? = nil
+    /// Nil means genuine bulbs/dimmers only; explicit true/false overrides it.
+    var includeInAllLights: Bool? = nil
     var order: Int = 0
     /// Last time a status came in, from either path.
     var updated: Date?
@@ -23,8 +26,17 @@ struct Light: Codable, Identifiable, Hashable {
     var status: [String: JSONValue] { info.status }
     var localKey: String? { info.localKey }
     var hasLocal: Bool { !(host ?? "").isEmpty && !(localKey ?? "").isEmpty }
+    /// A plug, strip, or plain wall switch must never be powered down as a side
+    /// effect of "All lights off", Siri, bedtime, or scheduled scenes by default.
+    var belongsToAllLights: Bool {
+        if let includeInAllLights { return includeInAllLights }
+        if DeviceInfo.lightCategories.contains(info.category) { return true }
+        return canDim || canColour || status.keys.contains("switch_led")
+    }
     var iconName: String {
-        if let customIcon, !customIcon.isEmpty { return customIcon }
+        if let customIcon, !customIcon.isEmpty {
+            return UIImage(systemName: customIcon) != nil ? customIcon : "lightbulb.fill"
+        }
         // Keep a plug shown as a light by user choice from looking like a bulb.
         if info.category == "pc" || (!DeviceInfo.lightCategories.contains(info.category) &&
             (name.localizedCaseInsensitiveContains("power strip") || name.localizedCaseInsensitiveContains("extension"))) {
@@ -36,7 +48,11 @@ struct Light: Codable, Identifiable, Hashable {
             return "poweroutlet.type.b"
         }
         if ["kg", "kgq", "tdq", "znjdq", "dlq"].contains(info.category) { return "switch.2" }
-        if name.localizedCaseInsensitiveContains("ceiling") { return "light.ceiling.fill" }
+        if name.localizedCaseInsensitiveContains("ceiling") {
+            // light.ceiling.fill is absent on some iOS symbol sets and drew an
+            // empty circle. Fall back to a symbol we know always exists.
+            return UIImage(systemName: "light.recessed.fill") != nil ? "light.recessed.fill" : "lightbulb.fill"
+        }
         return "lightbulb.fill"
     }
 
@@ -356,11 +372,14 @@ struct LightSnap: Codable, Hashable, Identifiable {
     var temperature: Double?
     var canDim: Bool
     var iconName: String?
+    /// Optional for backwards-compatible widget snapshot decoding.
+    var groupedLight: Bool?
 
     init(_ l: Light) {
         id = l.id; name = l.name; isOn = l.isOn; percent = l.percent; online = l.online
         colourMode = l.isColourMode; colour = l.colour; temperature = l.temperature; canDim = l.canDim
         iconName = l.iconName
+        groupedLight = l.belongsToAllLights
     }
 
     var tint: Color { Light.tint(colourMode: colourMode, colour: colour, temperature: temperature) }

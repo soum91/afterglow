@@ -62,3 +62,10 @@ This log records verified, release-specific changes. The [Factual release change
 - Coalesce token refresh within a client and reuse one cloud client across app, Shortcuts and widgets.
 - Run all-device commands sequentially; show attempted and failed device counts instead of silently controlling only a subset.
 - Automatically use a power-outlet icon for plug/strip categories, with a selectable icon for every light or plug in Settings.
+
+## Unreleased — protect sockets and manage devices
+- `All off`, `All on`, shortcuts, widgets, fallback TV/bedtime automations and default `All lights` scenes act on genuine lights only. A plug/strip/switch stays powered unless explicitly opted into the group.
+- Afterglow home now separates lights from other devices while retaining individual control.
+- Fix blank ceiling-light SF Symbol by testing availability and falling back to lightbulb.
+- Add an explicit Remove action in device settings and a persistent removed-device exclusion list so cloud sync cannot reimport deleted devices. Allow restoration from Settings.
+- Use selected device icons in widgets and expose the bulk-actions inclusion toggle.
