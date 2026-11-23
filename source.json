@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.51",
+          "buildVersion": "51",
+          "date": "2026-11-23T23:13:57Z",
+          "localizedDescription": "- Fix SwiftUI Section header for rename settings in Xcode 16.4 (de75b7a)\n- Add Home layout editor and native Keystone/Surge status cards from bridge data (eb1ff6c)\n- Add editable responsive Home grid with resizable, movable device cards (1f5b3ca)\n- Add user-defined device names for Siri and persist per-card sizes and order (e8a73d5)\n- docs: record factual changes for build-47 [skip ci] (652190e)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-51/Afterglow-1.0.51-build-51.ipa",
+          "size": 1921450,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.47",
           "buildVersion": "47",
           "date": "2026-11-23T21:51:01Z",
@@ -234,22 +243,13 @@
           "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-18/Afterglow-1.0.18-build-18.ipa",
           "size": 1511507,
           "minOSVersion": "18.0"
-        },
-        {
-          "version": "1.0.17",
-          "buildVersion": "17",
-          "date": "2026-10-27T03:05:00Z",
-          "localizedDescription": "- Add provider-free Control Center light button using proven widget action (1afb04c)",
-          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-17/Afterglow-1.0.17-build-17.ipa",
-          "size": 1511456,
-          "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.47",
-      "versionDate": "2026-11-23T21:51:01Z",
-      "versionDescription": "- Add Siri RGB colours, Kelvin white temperature and brightness intents with safe light selection (89bc1d6)\n- docs: record factual changes for build-46 [skip ci] (9edda73)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-47/Afterglow-1.0.47-build-47.ipa",
-      "size": 1816917,
+      "version": "1.0.51",
+      "versionDate": "2026-11-23T23:13:57Z",
+      "versionDescription": "- Fix SwiftUI Section header for rename settings in Xcode 16.4 (de75b7a)\n- Add Home layout editor and native Keystone/Surge status cards from bridge data (eb1ff6c)\n- Add editable responsive Home grid with resizable, movable device cards (1f5b3ca)\n- Add user-defined device names for Siri and persist per-card sizes and order (e8a73d5)\n- docs: record factual changes for build-47 [skip ci] (652190e)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-51/Afterglow-1.0.51-build-51.ipa",
+      "size": 1921450,
       "appPermissions": {}
     }
   ],
