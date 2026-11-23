@@ -5,6 +5,9 @@ struct HomeView: View {
     @State private var detail: String?
     @State private var showSettings = false
     @State private var editing: LightScene?
+    @State private var editingLayout = false
+    @State private var showCustomize = false
+    @State private var layout = HomeDashboardOptions.load()
 
     private var glow: Color {
         let on = store.visible.filter(\.isOn)
@@ -18,9 +21,12 @@ struct HomeView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         header
-                        allBar
-                        ScenesRow(editing: $editing)
+                        if layout.showBulkActions { allBar }
+                        if layout.showScenes { ScenesRow(editing: $editing) }
                         lightsGrid
+                        if layout.showIntegrations {
+                            HomeIntegrationCards(showKeystone: layout.showKeystone, showSurge: layout.showSurge)
+                        }
                         if store.visible.isEmpty && !store.loading { emptyState }
                     }
                     .padding(.horizontal, 16)
@@ -46,6 +52,11 @@ struct HomeView: View {
                     .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showSettings) { SettingsView() }
+            .sheet(isPresented: $showCustomize) {
+                HomeCustomizeView(options: $layout)
+                    .environmentObject(store)
+            }
+            .onChange(of: layout) { _, value in value.save() }
             .sheet(item: $editing) { s in SceneEditor(scene: s) }
         }
     }
@@ -73,6 +84,22 @@ struct HomeView: View {
                 .font(.subheadline)
             }
             Spacer()
+            HStack(spacing: 8) {
+                Button { editingLayout.toggle() } label: {
+                    Image(systemName: editingLayout ? "checkmark.circle.fill" : "square.grid.2x2")
+                        .font(.system(size: 17, weight: .semibold))
+                        .frame(width: 40, height: 40)
+                        .background(Theme.card, in: Circle())
+                }
+                .accessibilityLabel(editingLayout ? "Finish arranging cards" : "Arrange Home cards")
+                Button { showCustomize = true } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 17, weight: .semibold))
+                        .frame(width: 40, height: 40)
+                        .background(Theme.card, in: Circle())
+                }
+                .accessibilityLabel("Customize Home")
+            }
             Button { showSettings = true } label: {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 17, weight: .semibold))
@@ -116,14 +143,85 @@ struct HomeView: View {
         }
     }
 
-    private func deviceTiles(_ devices: [Light]) -> some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-            ForEach(devices) { l in
-                LightTile(light: l, route: store.routes[l.id]) {
-                    store.toggle(l)
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                } open: { detail = l.id }
+    private func rows(_ devices: [Light]) -> [[Light]] {
+        var output: [[Light]] = []
+        var pair: [Light] = []
+        for l in devices {
+            if l.resolvedCardSize != .compact {
+                if !pair.isEmpty { output.append(pair); pair = [] }
+                output.append([l])
+            } else {
+                pair.append(l)
+                if pair.count == 2 { output.append(pair); pair = [] }
             }
+        }
+        if !pair.isEmpty { output.append(pair) }
+        return output
+    }
+
+    private func deviceTiles(_ devices: [Light]) -> some View {
+        Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 10) {
+            ForEach(Array(rows(devices).enumerated()), id: \.offset) { group in
+                GridRow {
+                    ForEach(group.element) { light in
+                        displayCard(light)
+                            .gridCellColumns(light.resolvedCardSize == .compact ? 1 : 2)
+                    }
+                    if group.element.count == 1 && group.element[0].resolvedCardSize == .compact {
+                        Color.clear.frame(height: 1)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func displayCard(_ l: Light) -> some View {
+        let tile = LightTile(light: l, route: store.routes[l.id],
+                             toggle: {
+                                 if !editingLayout {
+                                     store.toggle(l)
+                                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                 }
+                             }, open: {
+                                 if !editingLayout { detail = l.id }
+                             }, tileHeight: l.resolvedCardSize.height)
+        if editingLayout {
+            tile
+                .onDrag { NSItemProvider(object: l.id as NSString) }
+                .onDrop(of: ["public.utf8-plain-text"], isTargeted: nil) { providers in
+                    guard let provider = providers.first else { return false }
+                    _ = provider.loadObject(ofClass: NSString.self) { item, _ in
+                        guard let source = item as? String else { return }
+                        DispatchQueue.main.async {
+                            store.moveLight(source, before: l.id)
+                        }
+                    }
+                    return true
+                }
+                .overlay(alignment: .topTrailing) {
+                    Menu {
+                        ForEach(HomeCardSize.allCases, id: \.self) { size in
+                            Button(size.name, systemImage: size == l.resolvedCardSize ? "checkmark" : "rectangle.grid.1x2") {
+                                store.updateLight(l.id) { $0.cardSize = size }
+                            }
+                        }
+                        Divider()
+                        Button("Move earlier", systemImage: "arrow.up") { store.stepLight(l.id, forward: false) }
+                        Button("Move later", systemImage: "arrow.down") { store.stepLight(l.id, forward: true) }
+                        Button("Device settings", systemImage: "gearshape") { detail = l.id }
+                    } label: {
+                        Image(systemName: "rectangle.expand.vertical")
+                            .font(.caption.bold())
+                            .frame(width: 36, height: 36)
+                            .background(.regularMaterial, in: Circle())
+                    }
+                    .padding(7)
+                }
+                .overlay(RoundedRectangle(cornerRadius: 22).stroke(Theme.accent.opacity(0.7), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])))
+        } else {
+            tile
         }
     }
 
@@ -145,6 +243,7 @@ struct LightTile: View {
     let route: Route?
     let toggle: () -> Void
     let open: () -> Void
+    var tileHeight: CGFloat = 132
 
     var body: some View {
         let on = light.isOn
@@ -182,7 +281,7 @@ struct LightTile: View {
             .foregroundStyle(.secondary)
         }
         .padding(14)
-        .frame(height: 132)
+        .frame(height: tileHeight)
         .background {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(on ? light.tint.opacity(0.10 + 0.22 * light.brightness) : Theme.card)
