@@ -157,7 +157,7 @@ struct LightSettingsView: View {
                     )) {
                         Label("Automatic", systemImage: "wand.and.stars").tag("")
                         Label("Light bulb", systemImage: "lightbulb.fill").tag("lightbulb.fill")
-                        Label("Ceiling light", systemImage: "light.ceiling.fill").tag("light.ceiling.fill")
+                        Label("Ceiling light", systemImage: "lightbulb.fill").tag("light.recessed.fill")
                         Label("Power strip", systemImage: "poweroutlet.strip.fill").tag("poweroutlet.strip.fill")
                         Label("Power outlet", systemImage: "poweroutlet.type.b").tag("poweroutlet.type.b")
                         Label("Smart switch", systemImage: "switch.2").tag("switch.2")

@@ -86,8 +86,8 @@ struct HomeView: View {
 
     private var allBar: some View {
         HStack(spacing: 10) {
-            bigButton("All off", "lightbulb.slash.fill", active: !store.anyOn) { store.setAll(on: false) }
-            bigButton("All on", "lightbulb.2.fill", active: store.anyOn && store.groupLights.allSatisfy(\.isOn)) { store.setAll(on: true) }
+            bigButton("Lights off", "lightbulb.slash.fill", active: !store.anyOn) { store.setAll(on: false) }
+            bigButton("Lights on", "lightbulb.2.fill", active: store.anyOn && store.groupLights.allSatisfy(\.isOn)) { store.setAll(on: true) }
         }
     }
 
@@ -130,7 +130,7 @@ struct HomeView: View {
     private var emptyState: some View {
         VStack(spacing: 10) {
             Image(systemName: "lightbulb").font(.largeTitle).foregroundStyle(.secondary)
-            Text("No lights found in your Smart Life account.").foregroundStyle(.secondary)
+            Text("No lights found on your Tuya Smart account.").foregroundStyle(.secondary)
             Button("Check again") { Task { await store.reloadDevices() } }
         }
         .frame(maxWidth: .infinity)

@@ -30,6 +30,10 @@ struct Light: Codable, Identifiable, Hashable {
     /// effect of "All lights off", Siri, bedtime, or scheduled scenes by default.
     var belongsToAllLights: Bool {
         if let includeInAllLights { return includeInAllLights }
+        if ["pc", "cz", "kg", "tdq", "kgq", "dlq", "znjdq"].contains(info.category) ||
+           name.localizedCaseInsensitiveContains("power outlet") ||
+           name.localizedCaseInsensitiveContains("power strip") ||
+           name.localizedCaseInsensitiveContains("charging extension") { return false }
         if DeviceInfo.lightCategories.contains(info.category) { return true }
         return canDim || canColour || status.keys.contains("switch_led")
     }
