@@ -146,7 +146,7 @@ struct LightSettingsView: View {
     var body: some View {
         Form {
             if let l = light {
-                Section("Display name & Siri") {
+                Section {
                     TextField("Custom name", text: $nameDraft)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.words)
@@ -162,6 +162,8 @@ struct LightSettingsView: View {
                         }
                     }
                     LabeledContent("Tuya device name", value: l.info.name)
+                } header: {
+                    Text("Display name & Siri")
                 } footer: {
                     Text("Afterglow, widgets, and Siri use this name. The original Tuya name remains a Siri search alias; it is not changed in Tuya Smart.")
                 }
