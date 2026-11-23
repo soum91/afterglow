@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.47",
+          "buildVersion": "47",
+          "date": "2026-11-23T21:51:01Z",
+          "localizedDescription": "- Add Siri RGB colours, Kelvin white temperature and brightness intents with safe light selection (89bc1d6)\n- docs: record factual changes for build-46 [skip ci] (9edda73)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-47/Afterglow-1.0.47-build-47.ipa",
+          "size": 1816917,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.46",
           "buildVersion": "46",
           "date": "2026-11-23T20:49:08Z",
@@ -234,22 +243,13 @@
           "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-17/Afterglow-1.0.17-build-17.ipa",
           "size": 1511456,
           "minOSVersion": "18.0"
-        },
-        {
-          "version": "1.0.16",
-          "buildVersion": "16",
-          "date": "2026-10-27T02:32:03Z",
-          "localizedDescription": "- Use working Home widget light action for Control Center button (9009f41)",
-          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-16/Afterglow-1.0.16-build-16.ipa",
-          "size": 1508115,
-          "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.46",
-      "versionDate": "2026-11-23T20:49:08Z",
-      "versionDescription": "- Fix Bulk actions settings compile error and fail CI correctly on Xcode errors (7d9967a)\n- Make All Lights scope explicit and guarantee power strip exclusion by default (ca2ede8)\n- Repair device management List structure and clarify safe default for added outlets (8e7df96)\n- Protect power strips from All Lights and add persistent device removal and icon fallback (f05b8dc)\n- docs: record factual changes for build-42 [skip ci] (b3f0a97)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-46/Afterglow-1.0.46-build-46.ipa",
-      "size": 1770789,
+      "version": "1.0.47",
+      "versionDate": "2026-11-23T21:51:01Z",
+      "versionDescription": "- Add Siri RGB colours, Kelvin white temperature and brightness intents with safe light selection (89bc1d6)\n- docs: record factual changes for build-46 [skip ci] (9edda73)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-47/Afterglow-1.0.47-build-47.ipa",
+      "size": 1816917,
       "appPermissions": {}
     }
   ],
