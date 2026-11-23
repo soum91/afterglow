@@ -55,3 +55,12 @@ Only bulbs with the corresponding Tuya control codes are affected. "All lights" 
 
 ### Display names and Siri
 Rename a light or a manually added switch under **Settings → Lights → device → Display name & Siri**. The alias is stored locally per device ID, persists through Tuya refreshes, and immediately updates the Afterglow AppEntity query and widget snapshot. Both the displayed alias and the original Tuya device name are matched in Siri entity searches. The change is also synchronized to the existing Keystone bridge configuration, where authorized. Device identity, controls and Shortcuts selections remain bound to immutable Tuya IDs.
+
+
+### Customize the Afterglow dashboard
+
+- Tap the grid icon by the Home settings button to enter **Arrange** mode. Drag a device card onto another card to reorder it, or use the card's menu to choose **Compact** (half width), **Wide** (full width) or **Large** (full width, taller).
+- Tap the sliders icon in the Home header for **Customize Home**. Turn Scenes, bulk light controls, and the optional Keystone/Surge integration cards on/off; use the arrow controls and size menus for device cards.
+- Rename a light, wall switch or plug under **Settings → Lights → device → Display name & Siri**. The label is local and retains the original Tuya name as a Siri search alias; no cloud rename needed.
+- The **Keystone** native integration card fetches read-only status from the paired bridge's `/api/info`; the **Surge** native card shows only mapped outlet states included in the same bridge response and can launch the Surge app via `surge://`. Tuya cloud-only control remains inside Surge. These are *not* third-party WidgetKit widgets embedded inside Afterglow: iOS does not expose that embedding API.
+- To use the app-launch buttons, install the current Keystone and Surge releases. If the bridge is unavailable, cards show an explicit unavailable/unconfigured status instead of displaying invented device states.

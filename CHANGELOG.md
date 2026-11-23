@@ -104,3 +104,10 @@ This log records verified, release-specific changes. The [Factual release change
 - Siri's dynamic EntityStringQuery matches both custom name and original name; update App Shortcut parameters when renamed.
 - Update widget/bridge labels without editing Tuya's account or hardcoding device names.
 - Add persistent per-device compact/wide/large Home card sizing and reorder helpers.
+
+
+## Unreleased — Customizable dashboard and native app panels
+- Add **Arrange Home** mode with drag-and-drop device card ordering and explicit move controls.
+- Add persisted per-device compact, wide and large card sizes and per-section visibility settings.
+- Integrate native read-only Keystone and Surge dashboard cards via the bridge status API; open installed companion apps through their registered URL schemes.
+- Keep other vendors' WidgetKit extension views out of the app; live controls and cloud-only strip state are not inferred without an accessible integration API.
