@@ -1,5 +1,16 @@
 # Changelog
 
+## [build-46] - 2026-11-23
+
+## Verified changes since build-42
+
+- Fix Bulk actions settings compile error and fail CI correctly on Xcode errors ([`7d9967ac`](https://github.com/soum91/afterglow/commit/7d9967aceae03239a4e757f3bf4a698fa67e090c); `.github/workflows/build.yml`, `Afterglow/Views/SettingsView.swift`)
+- Make All Lights scope explicit and guarantee power strip exclusion by default ([`ca2ede8a`](https://github.com/soum91/afterglow/commit/ca2ede8aad09ed159a850f73f600bcf38df76483); `Afterglow/Views/HomeView.swift`, `Afterglow/Views/SettingsView.swift`, `Shared/Light.swift`)
+- Repair device management List structure and clarify safe default for added outlets ([`8e7df96d`](https://github.com/soum91/afterglow/commit/8e7df96d51cea1a3bda406b2e2109cc54d2e9939); `Afterglow/Views/SettingsView.swift`)
+- Protect power strips from All Lights and add persistent device removal and icon fallback ([`f05b8dc9`](https://github.com/soum91/afterglow/commit/f05b8dc9e3783a242a35070cdf04395b58954d90); `Afterglow/App/AppStore.swift`, `Afterglow/App/Bridge.swift`, `Afterglow/Views/HomeView.swift`, and 8 more)
+
+[Inspect exact code changes](https://github.com/soum91/afterglow/compare/build-42...build-46)
+
 ## [build-42] - 2026-11-23
 
 ## Verified changes since build-39
