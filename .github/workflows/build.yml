@@ -6,6 +6,11 @@ on:
     paths-ignore: ["Bridge/**", ".github/workflows/bridge.yml", "**.md"]
   workflow_dispatch:
 
+# Only the latest source commit should publish an IPA and FlareStore feed.
+concurrency:
+  group: afterglow-ios-release
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -125,10 +130,12 @@ jobs:
 
       - name: Update sideloading source (FlareStore / AltStore / SideStore)
         run: |
+          set -euo pipefail
           git config user.name "ci"
           git config user.email "ci@users.noreply.github.com"
           URL="https://github.com/${{ github.repository }}/releases/download/$TAG/$IPA"
-          for attempt in 1 2 3; do
+          published=0
+          for attempt in 1 2 3 4 5; do
             rm -rf "$RUNNER_TEMP/source"
             if git fetch -q origin source; then
               git worktree add -q -f --detach "$RUNNER_TEMP/source" FETCH_HEAD
@@ -140,7 +147,23 @@ jobs:
             python3 .github/scripts/update-source.py "$RUNNER_TEMP/source/source.json" "$IPA" "$URL" "release-notes.md"
             git -C "$RUNNER_TEMP/source" add source.json
             git -C "$RUNNER_TEMP/source" commit -qm "Source: $APP build $BUILD"
-            git -C "$RUNNER_TEMP/source" push -q origin HEAD:refs/heads/source && break
+            if git -C "$RUNNER_TEMP/source" push -q origin HEAD:refs/heads/source; then
+              published=1
+              break
+            fi
             git worktree remove -f "$RUNNER_TEMP/source"
             sleep 5
           done
+          test "$published" -eq 1 || { echo "FlareStore source push FAILED" >&2; exit 1; }
+          git fetch -q origin source
+          python3 - "$VERSION" "$BUILD" "$URL" <<'PY'
+          import json,subprocess,sys
+          version,build,url=sys.argv[1:]
+          data=json.loads(subprocess.check_output(["git","show","FETCH_HEAD:source.json"]))
+          app=next((a for a in data.get("apps",[]) if a.get("name")=="Afterglow"),None)
+          assert app, "Afterglow missing from published source"
+          assert app.get("version")==version,(app.get("version"),version)
+          assert str(app.get("versions",[{}])[0].get("buildVersion"))==build
+          assert app.get("downloadURL")==url
+          print("FlareStore source verified:",version,build)
+          PY
