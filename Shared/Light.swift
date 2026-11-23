@@ -2,7 +2,17 @@ import Foundation
 import SwiftUI
 import UIKit
 
-/// One Tuya light: what the cloud told us about it, plus what we learned about reaching it on Wi-Fi.
+enum HomeCardSize: String, Codable, CaseIterable {
+    case compact, wide, large
+    var name: String {
+        switch self { case .compact: "Compact"; case .wide: "Wide"; case .large: "Large" }
+    }
+    var height: CGFloat {
+        switch self { case .compact: 132; case .wide: 132; case .large: 212 }
+    }
+}
+
+/// One Tuya light: cloud data plus user-owned home layout and display preferences.
 struct Light: Codable, Identifiable, Hashable {
     var info: DeviceInfo
     var functions: [String: DPSpec] = [:]
@@ -15,6 +25,12 @@ struct Light: Codable, Identifiable, Hashable {
     var hidden: Bool = false
     /// Optional SF Symbol chosen in Afterglow. Nil means device-aware default.
     var customIcon: String? = nil
+    /// User display alias: persisted locally, never overwritten by Tuya cloud refresh.
+    /// Siri references stable IDs, so this can change without breaking existing actions.
+    var customName: String? = nil
+    /// Optional for backwards compatibility with already saved devices.
+    var cardSize: HomeCardSize? = nil
+    var resolvedCardSize: HomeCardSize { cardSize ?? .compact }
     /// Nil means genuine bulbs/dimmers only; explicit true/false overrides it.
     var includeInAllLights: Bool? = nil
     var order: Int = 0
@@ -22,7 +38,10 @@ struct Light: Codable, Identifiable, Hashable {
     var updated: Date?
 
     var id: String { info.id }
-    var name: String { info.name }
+    var name: String {
+        let alias = customName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return alias.isEmpty ? info.name : alias
+    }
     var status: [String: JSONValue] { info.status }
     var localKey: String? { info.localKey }
     var hasLocal: Bool { !(host ?? "").isEmpty && !(localKey ?? "").isEmpty }

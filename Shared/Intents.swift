@@ -26,8 +26,12 @@ struct LightQuery: EntityStringQuery {
         everything().filter { identifiers.contains($0.id) }
     }
     func entities(matching string: String) async throws -> [LightEntity] {
-        let q = string.lowercased()
-        return everything().filter { $0.name.lowercased().contains(q) }
+        let q = string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return everything() }
+        let matches = Lights.all().filter {
+            $0.name.lowercased().contains(q) || $0.info.name.lowercased().contains(q)
+        }.map(LightEntity.init)
+        return (LightEntity.all.name.lowercased().contains(q) ? [LightEntity.all] : []) + matches
     }
     func suggestedEntities() async throws -> [LightEntity] { everything() }
 }

@@ -391,7 +391,45 @@ final class AppStore: ObservableObject {
     func updateLight(_ id: String, _ change: (inout Light) -> Void) {
         LightStore.update(id, change)
         lights = LightStore.load()
+        Lights.reloadWidgets()
+        AfterglowShortcuts.updateAppShortcutParameters()
         Task { await LightControl.shared.drop(id) }
+    }
+
+    func renameLight(_ id: String, to proposed: String) {
+        guard let current = lights.first(where: { $0.id == id }) else { return }
+        let trimmed = proposed.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.count > 48 { show("Use a name shorter than 49 characters."); return }
+        let effective = trimmed.isEmpty ? current.info.name : trimmed
+        if lights.contains(where: {
+            $0.id != id && $0.name.caseInsensitiveCompare(effective) == .orderedSame
+        }) {
+            show("Another device already has that name. Choose a distinct name for Siri.")
+            return
+        }
+        updateLight(id) { $0.customName = trimmed.isEmpty ? nil : trimmed }
+        Task { await BridgeSync.pushIfChanged(force: true) }
+        show("Renamed to \(effective). Siri and widgets will use this name.")
+    }
+
+    func moveLight(_ sourceID: String, before targetID: String) {
+        guard sourceID != targetID else { return }
+        var ordered = lights
+        guard let from = ordered.firstIndex(where: { $0.id == sourceID }),
+              let to = ordered.firstIndex(where: { $0.id == targetID }) else { return }
+        let moving = ordered.remove(at: from)
+        let destination = ordered.firstIndex(where: { $0.id == targetID }) ?? to
+        ordered.insert(moving, at: destination)
+        saveLights(ordered)
+    }
+
+    func stepLight(_ id: String, forward: Bool) {
+        guard let from = lights.firstIndex(where: { $0.id == id }) else { return }
+        let target = from + (forward ? 1 : -1)
+        guard lights.indices.contains(target), lights[target].belongsToAllLights == lights[from].belongsToAllLights else { return }
+        var ordered = lights
+        ordered.swapAt(from, target)
+        saveLights(ordered)
     }
 
     func saveScene(_ s: LightScene) {

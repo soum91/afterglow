@@ -121,7 +121,7 @@ struct LightsManageView: View {
                     store.saveLights(list)
                 }
             } footer: {
-                Text("Drag to reorder. The order is used on the home screen and in widgets. Names come from Smart Life; rename there.")
+                Text("Drag to reorder. Names, card sizes and icons can be changed in each device's settings. Siri automatically uses the displayed name.")
             }
         }
         .environment(\.editMode, .constant(.active))
@@ -135,6 +135,7 @@ struct LightSettingsView: View {
     @EnvironmentObject var store: AppStore
     let lightID: String
     @State private var host = ""
+    @State private var nameDraft = ""
     @State private var version = 0.0
     @State private var testing: String?
     @State private var confirmRemove = false
@@ -145,6 +146,25 @@ struct LightSettingsView: View {
     var body: some View {
         Form {
             if let l = light {
+                Section("Display name & Siri") {
+                    TextField("Custom name", text: $nameDraft)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.words)
+                    HStack {
+                        Button("Save name") { store.renameLight(l.id, to: nameDraft) }
+                            .disabled(nameDraft.trimmingCharacters(in: .whitespacesAndNewlines) == l.name)
+                        Spacer()
+                        if l.customName != nil {
+                            Button("Use Tuya name") {
+                                nameDraft = ""
+                                store.renameLight(l.id, to: "")
+                            }
+                        }
+                    }
+                    LabeledContent("Tuya device name", value: l.info.name)
+                } footer: {
+                    Text("Afterglow, widgets, and Siri use this name. The original Tuya name remains a Siri search alias; it is not changed in Tuya Smart.")
+                }
                 Section {
                     Toggle("Show in Afterglow", isOn: Binding(get: { !l.hidden }, set: { v in store.updateLight(l.id) { $0.hidden = !v } }))
                 } footer: {
@@ -164,8 +184,16 @@ struct LightSettingsView: View {
                         Label("Lamp", systemImage: "lamp.desk.fill").tag("lamp.desk.fill")
                         Label("Fan", systemImage: "fan.fill").tag("fan.fill")
                     }
+                    Picker("Home card size", selection: Binding(
+                        get: { l.resolvedCardSize },
+                        set: { size in store.updateLight(l.id) { $0.cardSize = size } }
+                    )) {
+                        ForEach(HomeCardSize.allCases, id: \.self) { size in
+                            Text(size.name).tag(size)
+                        }
+                    }
                 } header: { Text("Appearance") } footer: {
-                    Text("Changes the icon in Afterglow. Apple Home's accessory category comes from the Keystone bridge and is configured separately.")
+                    Text("Choose compact (half width), wide, or large. Change card order from Customize Home. Apple Home accessory type is managed by Keystone.")
                 }
                 Section {
                     Toggle("Include in All Lights and bulk scenes", isOn: Binding(
@@ -227,6 +255,7 @@ struct LightSettingsView: View {
             Text("This only removes it from Afterglow. The physical Tuya device will stay powered and paired to Tuya Smart.")
         }
         .onAppear {
+            nameDraft = light?.name ?? ""
             host = light?.host ?? ""
             version = light?.version ?? 0
         }

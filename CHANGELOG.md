@@ -97,3 +97,10 @@ This log records verified, release-specific changes. The [Factual release change
 - Keep power strips and switches out of all-lights colour/temperature actions.
 - Avoid turning RGB bulbs on nearly black when changing colour from off.
 - Preserve existing Bedtime and Toggle All as manual Shortcuts actions within the 10 promoted App Shortcuts limit.
+
+
+## Unreleased — Dynamic device names
+- Editable local names for lights, smart switches and plugs, preserving cloud identity and original Tuya names.
+- Siri's dynamic EntityStringQuery matches both custom name and original name; update App Shortcut parameters when renamed.
+- Update widget/bridge labels without editing Tuya's account or hardcoding device names.
+- Add persistent per-device compact/wide/large Home card sizing and reorder helpers.
