@@ -20,6 +20,15 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.46",
+          "buildVersion": "46",
+          "date": "2026-11-23T20:49:08Z",
+          "localizedDescription": "- Fix Bulk actions settings compile error and fail CI correctly on Xcode errors (7d9967a)\n- Make All Lights scope explicit and guarantee power strip exclusion by default (ca2ede8)\n- Repair device management List structure and clarify safe default for added outlets (8e7df96)\n- Protect power strips from All Lights and add persistent device removal and icon fallback (f05b8dc)\n- docs: record factual changes for build-42 [skip ci] (b3f0a97)",
+          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-46/Afterglow-1.0.46-build-46.ipa",
+          "size": 1770789,
+          "minOSVersion": "18.0"
+        },
+        {
           "version": "1.0.42",
           "buildVersion": "42",
           "date": "2026-11-23T20:24:06Z",
@@ -234,22 +243,13 @@
           "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-16/Afterglow-1.0.16-build-16.ipa",
           "size": 1508115,
           "minOSVersion": "18.0"
-        },
-        {
-          "version": "1.0.15",
-          "buildVersion": "15",
-          "date": "2026-10-27T02:29:20Z",
-          "localizedDescription": "- Register dedicated interactive 1x1 Lock Screen light switch (e991cd0)\n- Add Lock Screen 1x1 switch using proven Home widget intent (ed28405)",
-          "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-15/Afterglow-1.0.15-build-15.ipa",
-          "size": 1508044,
-          "minOSVersion": "18.0"
         }
       ],
-      "version": "1.0.42",
-      "versionDate": "2026-11-23T20:24:06Z",
-      "versionDescription": "- Build only latest Afterglow IPA and verify FlareStore feed publication (5df3742)\n- Back up Afterglow Tuya credentials in private app storage across App Group re-signing (001efb1)\n- Prevent Tuya auth loss, serialize all-light commands, and add per-device icons (e762ae7)\n- docs: record factual changes for build-39 [skip ci] (607e184)",
-      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-42/Afterglow-1.0.42-build-42.ipa",
-      "size": 1747370,
+      "version": "1.0.46",
+      "versionDate": "2026-11-23T20:49:08Z",
+      "versionDescription": "- Fix Bulk actions settings compile error and fail CI correctly on Xcode errors (7d9967a)\n- Make All Lights scope explicit and guarantee power strip exclusion by default (ca2ede8)\n- Repair device management List structure and clarify safe default for added outlets (8e7df96)\n- Protect power strips from All Lights and add persistent device removal and icon fallback (f05b8dc)\n- docs: record factual changes for build-42 [skip ci] (b3f0a97)",
+      "downloadURL": "https://github.com/soum91/afterglow/releases/download/build-46/Afterglow-1.0.46-build-46.ipa",
+      "size": 1770789,
       "appPermissions": {}
     }
   ],
