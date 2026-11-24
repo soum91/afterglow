@@ -1,5 +1,14 @@
 # Changelog
 
+## [build-52] - 2026-11-24
+
+## Verified changes since build-51
+
+- Restore manually added lighting switches to Lights and expose Rename in detail sheet ([`8c1d32e3`](https://github.com/soum91/afterglow/commit/8c1d32e3d0da6aa52ffb4018084cbffc1cdd7ae7); `Afterglow/Views/LightDetailView.swift`, `Afterglow/Views/SettingsView.swift`, `Shared/Light.swift`)
+- Document customizable Home cards, Siri aliases and Keystone/Surge native panels ([`dde57e0f`](https://github.com/soum91/afterglow/commit/dde57e0fc993328adb995d2483ba95015d184ed8); `README.md`)
+
+[Inspect exact code changes](https://github.com/soum91/afterglow/compare/build-51...build-52)
+
 ## [build-51] - 2026-11-23
 
 ## Verified changes since build-47
