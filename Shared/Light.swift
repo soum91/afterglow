@@ -45,14 +45,21 @@ struct Light: Codable, Identifiable, Hashable {
     var status: [String: JSONValue] { info.status }
     var localKey: String? { info.localKey }
     var hasLocal: Bool { !(host ?? "").isEmpty && !(localKey ?? "").isEmpty }
-    /// A plug, strip, or plain wall switch must never be powered down as a side
-    /// effect of "All lights off", Siri, bedtime, or scheduled scenes by default.
+    /// Only real lighting devices belong to bulk Lights actions. A manually
+    /// enrolled wall switch is a lighting controller: keep it with bulbs even
+    /// though Tuya classifies its hardware as "kg" or "tdq". Power strips and
+    /// outlets remain excluded unless explicitly opted in.
     var belongsToAllLights: Bool {
         if let includeInAllLights { return includeInAllLights }
-        if ["pc", "cz", "kg", "tdq", "kgq", "dlq", "znjdq"].contains(info.category) ||
+        if ["pc", "cz"].contains(info.category) ||
            name.localizedCaseInsensitiveContains("power outlet") ||
            name.localizedCaseInsensitiveContains("power strip") ||
            name.localizedCaseInsensitiveContains("charging extension") { return false }
+        if ["kg", "kgq", "tdq", "dlq", "znjdq"].contains(info.category) {
+            let display = name.lowercased()
+            let isLightingLabel = ["light", "lamp", "bulb", "ceiling"].contains { display.contains($0) }
+            return DeviceInfo.included.contains(id) || isLightingLabel
+        }
         if DeviceInfo.lightCategories.contains(info.category) { return true }
         return canDim || canColour || status.keys.contains("switch_led")
     }

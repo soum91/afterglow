@@ -122,3 +122,8 @@ This log records verified, release-specific changes. The [Factual release change
 - Add persisted per-device compact, wide and large card sizes and per-section visibility settings.
 - Integrate native read-only Keystone and Surge dashboard cards via the bridge status API; open installed companion apps through their registered URL schemes.
 - Keep other vendors' WidgetKit extension views out of the app; live controls and cloud-only strip state are not inferred without an accessible integration API.
+
+## Unreleased — manually added lighting switch and discoverable rename
+- Corrected All Lights classification: explicitly added Tuya wall switches (kg/tdq/kgq) can be light controllers and join Lights; power outlets and strips stay excluded by default.
+- Added a visible Rename button and direct device Settings button in the detail sheet instead of requiring navigation through global Settings.
+- Added an immediate 'This switch controls a light' toggle in the detail sheet, persisted for scenes, Siri, widgets and Home grouping.

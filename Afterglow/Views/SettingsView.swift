@@ -208,7 +208,7 @@ struct LightSettingsView: View {
                 } header: {
                     Text("Bulk actions")
                 } footer: {
-                    Text("Off keeps this device controllable individually but protects it from All On, All Off, Siri's All Lights commands, default light scenes, and TV/bedtime light automations.")
+                    Text("Enable for a switch that powers a light, so it participates in Lights On/Off, light scenes and Siri. Leave this off for power strips or other non-light appliances.")
                 }
                 Section {
                     TextField("IP address (e.g. 192.168.1.42)", text: $host)
@@ -319,7 +319,7 @@ struct AddDevicesView: View {
             } header: {
                 Text("Available on Tuya Smart")
             } footer: {
-                Text("Added devices stay individually controllable. Plugs, power strips and switches are excluded from All Lights, Siri bulk commands and bedtime scenes unless you explicitly enable them in the device's Bulk actions settings.")
+                Text("Wall switches added to control lighting join Lights automatically. Plugs and power strips stay out of Lights On/Off and bedtime scenes. You can override each device under Bulk actions.")
             }
 
             let added = store.lights.filter { DeviceInfo.included.contains($0.id) }

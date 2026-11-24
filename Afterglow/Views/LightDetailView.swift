@@ -6,6 +6,9 @@ struct LightDetailView: View {
     let lightID: String
     @State private var tab: Tab = .white
     @State private var showInfo = false
+    @State private var showRename = false
+    @State private var showDeviceSettings = false
+    @State private var nameDraft = ""
 
     enum Tab: String, CaseIterable { case white = "White", colour = "Colour" }
 
@@ -51,6 +54,24 @@ struct LightDetailView: View {
                 Text("This light is gone.").foregroundStyle(.secondary)
             }
         }
+        .alert("Rename device", isPresented: $showRename) {
+            TextField("Device name", text: $nameDraft)
+            Button("Save") { store.renameLight(lightID, to: nameDraft) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Afterglow and Siri will use this name. The device's Tuya Smart name stays unchanged.")
+        }
+        .sheet(isPresented: $showDeviceSettings) {
+            NavigationStack {
+                LightSettingsView(lightID: lightID)
+                    .environmentObject(store)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showDeviceSettings = false }
+                        }
+                    }
+            }
+        }
     }
 
     private func top(_ l: Light) -> some View {
@@ -60,6 +81,21 @@ struct LightDetailView: View {
                 Text(!l.online ? "Offline" : l.isOn ? (l.canDim ? "\(l.percent)%\(l.isColourMode ? "" : l.temperature.map { " · \(Kelvin.kelvin($0)) K" } ?? "")" : "On") : "Off")
                     .foregroundStyle(.secondary)
                     .contentTransition(.numericText())
+                HStack(spacing: 14) {
+                    Button {
+                        nameDraft = l.name
+                        showRename = true
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    Button {
+                        showDeviceSettings = true
+                    } label: {
+                        Label("Settings", systemImage: "gearshape")
+                    }
+                }
+                .font(.subheadline.weight(.medium))
+                .padding(.top, 8)
             }
             Spacer()
             Button {
@@ -145,8 +181,21 @@ struct LightDetailView: View {
             if let r = store.routes[l.id] {
                 Text("Last command went over \(r == .local ? "Wi-Fi" : "the cloud").").foregroundStyle(.secondary)
             }
-            Text("\(l.info.productName.isEmpty ? "Tuya light" : l.info.productName) · \(l.info.category)")
+            Text("\(l.info.productName.isEmpty ? "Tuya device" : l.info.productName) · \(l.info.category)")
                 .foregroundStyle(.secondary)
+            if ["kg", "kgq", "tdq", "dlq", "znjdq"].contains(l.info.category) {
+                Toggle("This switch controls a light", isOn: Binding(
+                    get: { l.belongsToAllLights },
+                    set: { enabled in
+                        store.updateLight(l.id) { $0.includeInAllLights = enabled }
+                        Task { await BridgeSync.pushIfChanged(force: true) }
+                    }
+                ))
+                .tint(Theme.accent)
+                Text("When enabled, it stays in Lights and responds to Lights On/Off, light scenes, and Siri. Power strips remain separate.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             DisclosureGroup("Data points", isExpanded: $showInfo) {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(l.status.keys.sorted(), id: \.self) { k in
