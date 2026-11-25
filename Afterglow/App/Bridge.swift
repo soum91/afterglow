@@ -203,8 +203,15 @@ enum BridgeAPI {
                 d["ct"] = dp; d["ctMin"] = Int(l.tempRange.lowerBound); d["ctMax"] = Int(l.tempRange.upperBound)
             }
             if let c = l.colourCode, let dp = l.dpID(for: c) { d["col"] = dp; d["colV1"] = l.isV1 || c == "colour_data" }
-            // A plain relay or plug (nothing to dim or colour) is a Switch in Apple Home, not a bulb.
-            if d["bri"] == nil, d["ct"] == nil, d["col"] == nil, !DeviceInfo.lightCategories.contains(l.info.category) { d["kind"] = "switch" }
+            // Service type matters to generic Siri "all lights", not merely
+            // the Afterglow section or its icon. A wall switch controlling a
+            // light must advertise HomeKit LightBulb (on/off only). Ordinary
+            // sockets and strips remain switches. Only verified LAN-capable
+            // devices reach the bridge: cloud-only Matter is paired to Home
+            // through its own Matter setup code.
+            if d["bri"] == nil && d["ct"] == nil && d["col"] == nil {
+                d["kind"] = l.belongsToAllLights ? "light" : "switch"
+            }
             if d["sw"] != nil { ls.append(d) }
         }
         func actions(_ sceneID: String?, fallbackOff: Bool) -> [[String: Any]] {

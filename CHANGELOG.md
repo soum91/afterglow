@@ -136,3 +136,9 @@ This log records verified, release-specific changes. The [Factual release change
 - Corrected All Lights classification: explicitly added Tuya wall switches (kg/tdq/kgq) can be light controllers and join Lights; power outlets and strips stay excluded by default.
 - Added a visible Rename button and direct device Settings button in the detail sheet instead of requiring navigation through global Settings.
 - Added an immediate 'This switch controls a light' toggle in the detail sheet, persisted for scenes, Siri, widgets and Home grouping.
+
+## Unreleased — Root-cause fix for Siri and lighting relays
+- Expose local on/off-only wall relays as HomeKit LightBulb services when explicitly included in Lights; keep power outlets and strips as switches.
+- Make the device details distinguish Siri's native Apple Home 'all lights' command from Afterglow App Shortcuts, and show a deterministic Matter-pairing path when the switch is cloud-only.
+- Stop reporting successful Siri all-lights actions if any targeted light fails.
+- Provide an explicit Keystone config sync action for LAN-supported devices without claiming cloud-only devices can be published by the ESP32.

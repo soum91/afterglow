@@ -77,7 +77,12 @@ struct AllLightsOffIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let failed = try await Lights.set(nil, on: false)
         let all = Lights.groupedLights().filter { $0.powerCode != nil }
-        return .result(dialog: IntentDialog(stringLiteral: "Off command accepted by \(all.count - failed.count) of \(all.count) devices. \(failed.isEmpty ? "" : "Failed: \(failed.joined(separator: ", ")).")"))
+        // Siri must not say an all-lights command succeeded when one of the
+        // lighting relays failed or a Tuya cloud token expired.
+        if !failed.isEmpty {
+            throw TuyaError(message: "Off command failed for \(failed.joined(separator: ", ")). \(all.count - failed.count) of \(all.count) lights accepted the command.")
+        }
+        return .result(dialog: IntentDialog(stringLiteral: "Afterglow sent Off to all \(all.count) configured lights."))
     }
 }
 
@@ -93,7 +98,10 @@ struct AllLightsOnIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let failed = try await Lights.set(nil, on: true)
         let all = Lights.groupedLights().filter { $0.powerCode != nil }
-        return .result(dialog: IntentDialog(stringLiteral: "On command accepted by \(all.count - failed.count) of \(all.count) devices. \(failed.isEmpty ? "" : "Failed: \(failed.joined(separator: ", ")).")"))
+        if !failed.isEmpty {
+            throw TuyaError(message: "On command failed for \(failed.joined(separator: ", ")). \(all.count - failed.count) of \(all.count) lights accepted the command.")
+        }
+        return .result(dialog: IntentDialog(stringLiteral: "Afterglow sent On to all \(all.count) configured lights."))
     }
 }
 

@@ -46,6 +46,7 @@ struct LightDetailView: View {
                             colourControls(l)
                         }
                         infoCard(l)
+                        siriReadiness(l)
                     }
                     .padding(20)
                 }
@@ -165,6 +166,46 @@ struct LightDetailView: View {
                 }
             }
         }
+        .card()
+    }
+
+    // MARK: Siri / Apple Home path
+
+    private func siriReadiness(_ l: Light) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionTitle(text: "Siri & Apple Home")
+            if !l.belongsToAllLights {
+                Label("Not in the Afterglow All Lights group", systemImage: "exclamationmark.triangle")
+                Text("Enable 'This switch controls a light' above to include it in Afterglow's voice and bulk light actions.")
+                    .foregroundStyle(.secondary)
+            } else {
+                Label("Included in Afterglow All Lights", systemImage: "checkmark.circle")
+                Text("Use “Lights off in Afterglow” for the app's Tuya cloud/local commands. Bare “turn off all lights” is an Apple Home command and does not launch Afterglow.")
+                    .foregroundStyle(.secondary)
+            }
+            if !l.hasLocal {
+                Label("Apple Home via Keystone: unavailable", systemImage: "wifi.slash")
+                    .foregroundStyle(.orange)
+                Text("This switch has no verified Tuya LAN connection. Keystone cannot expose a functioning Apple Home light for it using the current LAN bridge. If this is a Matter Mini interrupter, share or pair the device directly with Apple Home using its Matter commissioning code; then assign it as a light where Apple Home permits.")
+                    .foregroundStyle(.secondary)
+                if let help = URL(string: "https://support.apple.com/en-ca/102135") {
+                    Link("Apple's Matter pairing instructions", destination: help)
+                }
+            } else {
+                Label("Tuya LAN details saved", systemImage: "wifi")
+                Text("Keystone can publish this switch as an on/off light when it answers on LAN. This requires an up-to-date bridge configuration and a responsive Apple Home accessory; stored IP/key alone do not prove it is online.")
+                    .foregroundStyle(.secondary)
+                Button("Sync lighting type to Keystone") {
+                    Task {
+                        let feedback = await BridgeSync.pushIfChanged(force: true)
+                        store.show(feedback ?? "Configure the Apple Home bridge in Afterglow Settings first.")
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .font(.footnote)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .card()
     }
 
