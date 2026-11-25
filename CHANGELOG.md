@@ -1,5 +1,15 @@
 # Changelog
 
+## [build-55] - 2026-11-25
+
+## Verified changes since build-52
+
+- Migrate existing lighting switches into persisted Siri group, preserve explicit exclusions ([`324130d7`](https://github.com/soum91/afterglow/commit/324130d75009fb2b906a0464aca1e21019823dac); `Afterglow/App/AppStore.swift`)
+- Persist manually added lighting switch classification in Siri-visible light records ([`5c98bc1f`](https://github.com/soum91/afterglow/commit/5c98bc1f9b286b077a401e949254b1502b53b3cb); `Afterglow/App/AppStore.swift`)
+- Fix Siri HomeKit relay classification and explain cloud-only Matter path ([`c456555d`](https://github.com/soum91/afterglow/commit/c456555d9072ae01038b60a0ff127327c9f391b6); `Afterglow/App/Bridge.swift`, `Afterglow/Views/LightDetailView.swift`, `Shared/Intents.swift`)
+
+[Inspect exact code changes](https://github.com/soum91/afterglow/compare/build-52...build-55)
+
 ## [build-52] - 2026-11-24
 
 ## Verified changes since build-51
