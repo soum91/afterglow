@@ -144,6 +144,15 @@ final class AppStore: ObservableObject {
         set.insert(id)
         DeviceInfo.included = set
         await reloadDevices()
+        // Persist the user's lighting designation INSIDE the Light record that
+        // the Siri AppIntent and widget independently decode. Do not depend
+        // solely on included-devices.json surviving app-group re-signing.
+        // Ordinary plugs/strips must never join an all-lights command by default.
+        if let device = lights.first(where: { $0.id == id }),
+           device.includeInAllLights == nil {
+            let lightingSwitch = ["kg", "kgq", "tdq", "dlq", "znjdq"].contains(device.info.category)
+            updateLight(id) { $0.includeInAllLights = lightingSwitch }
+        }
         // The bridge only talks to devices on the Wi-Fi, so find this one first, then send.
         if let l = lights.first(where: { $0.id == id }), !l.hasLocal, LocalScan.wifiAddress() != nil {
             await findOnWiFi(quiet: true)
