@@ -109,6 +109,18 @@ final class AppStore: ObservableObject {
             }
             list += newOnes
             for i in list.indices {
+                // Migrate legacy switches explicitly added as lighting to the
+                // self-contained record used by Siri/App Intents. Never override
+                // the user's explicit Off choice or reclassify sockets/strips.
+                if list[i].includeInAllLights == nil,
+                   DeviceInfo.included.contains(list[i].id) {
+                    let category = list[i].info.category
+                    if ["kg", "kgq", "tdq", "dlq", "znjdq"].contains(category) {
+                        list[i].includeInAllLights = true
+                    } else if ["pc", "cz"].contains(category) {
+                        list[i].includeInAllLights = false
+                    }
+                }
                 if let s = specs[list[i].id] {
                     if !s.0.isEmpty { list[i].functions = s.0 }
                     if !s.1.isEmpty { list[i].statusSpec = s.1 }
